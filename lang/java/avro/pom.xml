@@ -246,4 +246,93 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <profiles>
+    <profile>
+      <id>evosuite</id>
+
+      <properties>
+        <evosuiteVersion>1.0.6</evosuiteVersion>
+        <evosuiteTargetFolder>src/test/evosuite</evosuiteTargetFolder>
+      </properties>
+
+      <dependencies>
+        <dependency>
+          <groupId>org.evosuite</groupId>
+          <artifactId>evosuite-standalone-runtime</artifactId>
+          <version>${evosuiteVersion}</version>
+          <scope>test</scope>
+        </dependency>
+
+        <dependency>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+          <version>4.13.2</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+
+      <build>
+        <plugins>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>com.diffplug.spotless</groupId>
+            <artifactId>spotless-maven-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+
+
+          <plugin>
+            <groupId>org.evosuite.plugins</groupId>
+            <artifactId>evosuite-maven-plugin</artifactId>
+            <version>${evosuiteVersion}</version>
+          </plugin>
+
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>3.6.1</version>
+            <executions>
+              <execution>
+                <id>add-evosuite-test-source</id>
+                <phase>generate-test-sources</phase>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>${evosuiteTargetFolder}</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <properties>
+                <property>
+                  <name>listener</name>
+                  <value>org.evosuite.runtime.InitializingListener</value>
+                </property>
+              </properties>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>
