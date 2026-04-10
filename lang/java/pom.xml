@@ -15,7 +15,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
@@ -35,6 +36,12 @@
 
   <properties>
     <main.basedir>${project.parent.basedir}</main.basedir>
+
+    <!-- JaCoCo -->
+    <jacoco.version>0.8.14</jacoco.version>
+    <surefireArgLine></surefireArgLine>
+    <!-- bootstrap: soglia molto bassa solo per verificare che il check funzioni -->
+    <jacoco.check.line.minimum>0.01</jacoco.check.line.minimum>
 
     <!-- version properties for dependencies -->
     <ant.version>1.10.16</ant.version>
@@ -61,6 +68,7 @@
     <tukaani.version>1.12</tukaani.version>
     <velocity.version>2.4.1</velocity.version>
     <zstd-jni.version>1.5.7-7</zstd-jni.version>
+
     <!-- version properties for plugins -->
     <archetype-plugin.version>3.4.1</archetype-plugin.version>
     <bundle-plugin-version>6.0.2</bundle-plugin-version>
@@ -95,16 +103,62 @@
   </modules>
 
   <build>
-    <!-- defines the default plugin configuration that all child projects inherit from.
-      Like dependencyManagement, this provides configuration, version, and other
-      parameters if the plugins are used by child projects -->
     <pluginManagement>
       <plugins>
+
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco.version}</version>
+          <executions>
+            <execution>
+              <id>jacoco-prepare-agent</id>
+              <goals>
+                <goal>prepare-agent</goal>
+              </goals>
+              <configuration>
+                <propertyName>surefireArgLine</propertyName>
+              </configuration>
+            </execution>
+
+            <execution>
+              <id>jacoco-report</id>
+              <phase>verify</phase>
+              <goals>
+                <goal>report</goal>
+              </goals>
+            </execution>
+
+            <execution>
+              <id>jacoco-check</id>
+              <phase>verify</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <rule>
+                    <element>BUNDLE</element>
+                    <limits>
+                      <limit>
+                        <counter>LINE</counter>
+                        <value>COVEREDRATIO</value>
+                        <minimum>${jacoco.check.line.minimum}</minimum>
+                      </limit>
+                    </limits>
+                  </rule>
+                </rules>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
           <version>3.6.1</version>
         </plugin>
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
@@ -117,6 +171,7 @@
             </dependency>
           </dependencies>
         </plugin>
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
@@ -126,9 +181,7 @@
               <arg>-parameters</arg>
               <!--<arg>-Werror</arg>-->
               <arg>-Xlint:all</arg>
-              <!-- Override options warnings to support cross-compilation -->
               <arg>-Xlint:-options</arg>
-              <!-- Temporary lint overrides, to be removed over time. -->
               <arg>-Xlint:-rawtypes</arg>
               <arg>-Xlint:-serial</arg>
               <arg>-Xlint:-unchecked</arg>
@@ -137,13 +190,10 @@
             </compilerArgs>
           </configuration>
         </plugin>
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <!--We want to be able to resuse the test-jars for mapred
-              to test avro-tool
-              see https://maven.apache.org/guides/mini/guide-attached-tests.html
-          -->
           <executions>
             <execution>
               <goals>
@@ -160,20 +210,14 @@
             </archive>
           </configuration>
         </plugin>
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${maven-surefire-plugin.version}</version>
           <configuration>
-            <includes>
-              <!-- Avro naming convention for JUnit tests -->
-              <include>**/Test**</include>
-            </includes>
             <excludes>
-              <!-- A few inner classes are not to be tested -->
               <exclude>**/*$*</exclude>
-              <!-- exclude the generated classes under apache.avro.test, some of
-                these match **/Test** and are not JUnit tests -->
               <exclude>**/apache/avro/test/**</exclude>
             </excludes>
             <enableAssertions>false</enableAssertions>
@@ -182,21 +226,12 @@
             <parallel>all</parallel>
             <useUnlimitedThreads>true</useUnlimitedThreads>
             <!--<perCoreThreadCount>true</perCoreThreadCount>-->
-
-            <!-- TestSpecificCompiler instantiates a Java compiler to test output results,
-                 this does not work with a manifest-only-jar to set the classpath for the javac.
-                 This may cause problems on some platforms.
-                 See https://maven.apache.org/plugins/maven-surefire-plugin/examples/class-loading.html
-                 for more information. -->
             <useManifestOnlyJar>false</useManifestOnlyJar>
-            <!-- configures unit test standard error and standard out to go to a file per test
-                 rather than the console. -->
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
             <failIfNoTests>false</failIfNoTests>
-            <argLine>-Xmx1000m</argLine>
+            <argLine>@{surefireArgLine} -Xmx1000m</argLine>
             <systemPropertyVariables>
 
-              <!-- Using the related system properties to set the trusted classes/packages for all tests (in every module). -->
               <org.apache.avro.SERIALIZABLE_CLASSES>
                 java.net.URI,
                 java.net.URL,
@@ -212,6 +247,7 @@
                 example.avro.Bar,
                 com.google.protobuf.Timestamp
               </org.apache.avro.SERIALIZABLE_CLASSES>
+
               <org.apache.avro.SERIALIZABLE_PACKAGES>
                 org.apache.avro,
                 test
@@ -220,6 +256,7 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
@@ -241,6 +278,7 @@
             <detectOfflineLinks>false</detectOfflineLinks>
           </configuration>
         </plugin>
+
         <plugin>
           <groupId>org.javacc.plugin</groupId>
           <artifactId>javacc-maven-plugin</artifactId>
@@ -253,16 +291,19 @@
             </dependency>
           </dependencies>
         </plugin>
+
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
           <version>${exec-plugin.version}</version>
         </plugin>
+
         <plugin>
           <groupId>com.diffplug.spotless</groupId>
           <artifactId>spotless-maven-plugin</artifactId>
           <version>${spotless-maven-plugin.version}</version>
         </plugin>
+
         <plugin>
           <groupId>org.cyclonedx</groupId>
           <artifactId>cyclonedx-maven-plugin</artifactId>
@@ -270,7 +311,13 @@
         </plugin>
       </plugins>
     </pluginManagement>
+
     <plugins>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
@@ -281,17 +328,11 @@
           <instructions>
             <Bundle-Name>${project.name}</Bundle-Name>
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
-            <!--suppress UnresolvedMavenProperty -->
             <Export-Package>${osgi.export}</Export-Package>
-            <!--suppress UnresolvedMavenProperty -->
             <Import-Package>${osgi.import}</Import-Package>
-            <!--suppress UnresolvedMavenProperty -->
             <DynamicImport-Package>${osgi.dynamic.import}</DynamicImport-Package>
-            <!--suppress UnresolvedMavenProperty -->
             <Private-Package>${osgi.private}</Private-Package>
-            <!--suppress UnresolvedMavenProperty -->
             <Require-Bundle>${osgi.bundles}</Require-Bundle>
-            <!--suppress UnresolvedMavenProperty -->
             <Bundle-Activator>${osgi.activator}</Bundle-Activator>
           </instructions>
           <supportedProjectTypes>
@@ -309,6 +350,7 @@
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
@@ -317,9 +359,6 @@
           <configLocation>checkstyle.xml</configLocation>
           <suppressionsLocation>suppressions.xml</suppressionsLocation>
         </configuration>
-        <!-- Runs by default in the verify phase  (mvn verify or later in the build cycle)
-             the 'check' goal will fail the build if it does not pass.  "mvn checkstyle:check"
-             will do this alone, or "mvn checkstyle:checkstyle" will report but not break  -->
         <executions>
           <execution>
             <id>checkstyle-check</id>
@@ -330,31 +369,27 @@
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
         <configuration>
           <java>
             <eclipse>
-              <!-- Avro uses Sun's java code style conventions with 2 spaces, this is a modified version of
-                   the eclipse formatter -->
               <file>${main.basedir}/lang/java/eclipse-java-formatter.xml</file>
               <version>4.19</version>
             </eclipse>
-            <!-- Temporarily disabled for JDK 16+ builds -->
             <!--<removeUnusedImports/>-->
             <replaceRegex>
               <name>Remove wildcard imports</name>
               <searchRegex>import\s+[^\*\s]+\*;(\r\n|\r|\n)</searchRegex>
               <replacement>$1</replacement>
             </replaceRegex>
-            <!-- Allow spotless:off/spotless:on comment pairs to keep ASCII-formatted tables intact -->
             <toggleOffOn/>
           </java>
         </configuration>
         <executions>
           <execution>
-            <!-- Runs in compile phase to fail fast in case of formatting issues.-->
             <id>spotless-check</id>
             <phase>compile</phase>
             <goals>
@@ -363,6 +398,7 @@
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
@@ -411,6 +447,7 @@
                         <ignore></ignore>
                       </action>
                     </pluginExecution>
+
                     <pluginExecution>
                       <pluginExecutionFilter>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -424,6 +461,7 @@
                         <ignore/>
                       </action>
                     </pluginExecution>
+
                     <pluginExecution>
                       <pluginExecutionFilter>
                         <groupId>org.codehaus.mojo</groupId>
@@ -437,6 +475,7 @@
                         <ignore/>
                       </action>
                     </pluginExecution>
+
                     <pluginExecution>
                       <pluginExecutionFilter>
                         <groupId>org.codehaus.mojo</groupId>
@@ -450,6 +489,7 @@
                         <ignore/>
                       </action>
                     </pluginExecution>
+
                     <pluginExecution>
                       <pluginExecutionFilter>
                         <groupId>org.apache.avro</groupId>
@@ -469,6 +509,7 @@
                 </lifecycleMappingMetadata>
               </configuration>
             </plugin>
+
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-antrun-plugin</artifactId>
@@ -478,6 +519,7 @@
         </pluginManagement>
       </build>
     </profile>
+
     <profile>
       <id>mac</id>
       <activation>
@@ -492,7 +534,6 @@
             <artifactId>maven-surefire-plugin</artifactId>
             <configuration>
               <systemPropertyVariables>
-                <!-- avro-mapred will fail in tests on mac without this -->
                 <java.security.krb5.realm>OX.AC.UK</java.security.krb5.realm>
                 <java.security.krb5.kdc>kdc0.ox.ac.uk:kdc1.ox.ac.uk</java.security.krb5.kdc>
               </systemPropertyVariables>
@@ -501,7 +542,7 @@
         </plugins>
       </build>
     </profile>
-    <!-- This profile is used on tests to validate backwards compatibility with Hadoop 2 -->
+
     <profile>
       <id>hadoop2</id>
       <properties>
@@ -510,10 +551,6 @@
     </profile>
   </profiles>
 
-  <!-- dependencyManagement can be used to define dependency versions, scopes, and
-    excludes to be shared by child projects. Child projects will not inherit these dependencies,
-    rather they inherit the properties of the below dependencies (such as version) if
-    the dependency is specified in the child. -->
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -523,107 +560,123 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
       <dependency>
         <groupId>org.apache.velocity</groupId>
         <artifactId>velocity-engine-core</artifactId>
         <version>${velocity.version}</version>
       </dependency>
+
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-server</artifactId>
         <version>${jetty.version}</version>
       </dependency>
+
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-servlet</artifactId>
         <version>${jetty.version}</version>
       </dependency>
+
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-util</artifactId>
         <version>${jetty.version}</version>
       </dependency>
+
       <dependency>
         <groupId>javax.servlet</groupId>
         <artifactId>javax.servlet-api</artifactId>
         <version>${servlet-api.version}</version>
       </dependency>
+
       <dependency>
         <groupId>net.sf.jopt-simple</groupId>
         <artifactId>jopt-simple</artifactId>
         <version>${jopt-simple.version}</version>
       </dependency>
-      <!-- hadoop's execution environment provides its own jars. -->
+
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-client</artifactId>
         <version>${hadoop.version}</version>
         <exclusions>
-          <exclusion> <!-- GPL -->
+          <exclusion>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
+
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
         <version>${mockito.version}</version>
         <scope>test</scope>
       </dependency>
+
       <dependency>
         <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest-library</artifactId>
         <version>${hamcrest.version}</version>
         <scope>test</scope>
       </dependency>
+
       <dependency>
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
         <version>${snappy.version}</version>
       </dependency>
+
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-compress</artifactId>
         <version>${commons-compress.version}</version>
       </dependency>
+
       <dependency>
         <groupId>io.grpc</groupId>
         <artifactId>grpc-core</artifactId>
         <version>${grpc.version}</version>
       </dependency>
+
       <dependency>
         <groupId>io.grpc</groupId>
         <artifactId>grpc-stub</artifactId>
         <version>${grpc.version}</version>
         <exclusions>
-          <exclusion> <!-- GPL -->
+          <exclusion>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
+
       <dependency>
         <groupId>io.grpc</groupId>
         <artifactId>grpc-netty</artifactId>
         <version>${grpc.version}</version>
         <exclusions>
-          <exclusion> <!-- GPL -->
+          <exclusion>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
+
       <dependency>
         <groupId>org.tukaani</groupId>
         <artifactId>xz</artifactId>
         <version>${tukaani.version}</version>
       </dependency>
+
       <dependency>
         <groupId>com.github.luben</groupId>
         <artifactId>zstd-jni</artifactId>
         <version>${zstd-jni.version}</version>
       </dependency>
+
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
@@ -632,8 +685,6 @@
     </dependencies>
   </dependencyManagement>
 
-  <!-- dependencies defines dependencies that all child projects share. Child projects
-    will inherit these dependencies directly, and can opt out if necessary with <excludes> -->
   <dependencies>
     <dependency>
       <groupId>org.junit.vintage</groupId>
@@ -648,11 +699,13 @@
       <version>${junit5.version}</version>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
     </dependency>
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
@@ -660,5 +713,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
 </project>

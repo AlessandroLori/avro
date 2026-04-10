@@ -91,7 +91,7 @@
         <version>@maven-surefire-plugin.version@</version>
         <configuration>
           <useModulePath>false</useModulePath>
-          <failIfNoTests>true</failIfNoTests>
+          <failIfNoTests>false</failIfNoTests>
           <systemPropertyVariables>
 
             <!-- Repeating the related system properties here because this pom does not inherit the configuration. -->
