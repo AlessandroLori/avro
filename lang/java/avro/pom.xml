@@ -252,7 +252,7 @@
       <id>evosuite</id>
 
       <properties>
-        <evosuiteVersion>1.0.6</evosuiteVersion>
+        <evosuiteVersion>1.2.0</evosuiteVersion>
         <evosuiteTargetFolder>src/test/evosuite</evosuiteTargetFolder>
       </properties>
 
@@ -274,24 +274,6 @@
 
       <build>
         <plugins>
-
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <configuration>
-              <skip>true</skip>
-            </configuration>
-          </plugin>
-
-          <plugin>
-            <groupId>com.diffplug.spotless</groupId>
-            <artifactId>spotless-maven-plugin</artifactId>
-            <configuration>
-              <skip>true</skip>
-            </configuration>
-          </plugin>
-
-
           <plugin>
             <groupId>org.evosuite.plugins</groupId>
             <artifactId>evosuite-maven-plugin</artifactId>
@@ -322,6 +304,16 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-surefire-plugin</artifactId>
             <configuration>
+              <argLine>
+                @{surefireArgLine}
+                --add-opens java.base/java.lang=ALL-UNNAMED
+                --add-opens java.base/java.util=ALL-UNNAMED
+                --add-opens java.base/java.net=ALL-UNNAMED
+                --add-opens java.base/java.io=ALL-UNNAMED
+                --add-opens java.base/java.nio=ALL-UNNAMED
+                --add-opens java.desktop/java.awt=ALL-UNNAMED
+                --add-opens java.desktop/javax.swing=ALL-UNNAMED
+              </argLine>
               <properties>
                 <property>
                   <name>listener</name>

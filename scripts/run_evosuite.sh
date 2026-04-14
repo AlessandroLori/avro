@@ -218,7 +218,7 @@ run_generated_tests() {
   mvn -pl lang/java/avro -Pevosuite \
     -Dspotless.check.skip=true \
     -Dtest="$pattern" \
-    -Dsurefire.failIfNoSpecifiedTests=false \
+    -Dsurefire.failIfNoSpecifiedTests=true \
     test
 }
 
