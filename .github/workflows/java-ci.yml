@@ -1,0 +1,51 @@
+name: Java CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  avro-core-tests:
+    name: Avro core - Maven tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 11, 17 and 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: |
+            11
+            17
+            21
+          cache: maven
+
+      - name: Show Java and Maven versions
+        run: |
+          java -version
+          mvn -version
+          echo "JAVA_HOME=$JAVA_HOME"
+          ls -la ~/.m2 || true
+          cat ~/.m2/toolchains.xml || true
+
+      - name: Run Mockito smoke test
+        run: |
+          mvn -B -pl lang/java/avro \
+            -Dspotless.check.skip=true \
+            -Dtest=TestMockitoSmoke \
+            clean test
