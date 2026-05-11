@@ -47,6 +47,9 @@
 
     <mockito.version>5.23.0</mockito.version>
 
+    <pitest.version>1.23.1</pitest.version>
+    <pitest.junit5.plugin.version>1.2.3</pitest.junit5.plugin.version>
+
   </properties>
 
   <build>
