@@ -7,7 +7,8 @@ on:
       - master
       - develop
     paths:
-      - 'lang/java/**'
+      - 'lang/java/avro/**'
+      - 'lang/java/pom.xml'
       - 'pom.xml'
       - '.mvn/**'
       - '.github/workflows/java-ci.yml'
@@ -18,7 +19,8 @@ on:
       - master
       - develop
     paths:
-      - 'lang/java/**'
+      - 'lang/java/avro/**'
+      - 'lang/java/pom.xml'
       - 'pom.xml'
       - '.mvn/**'
       - '.github/workflows/java-ci.yml'
@@ -28,9 +30,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: java-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   avro-core-tests:
-    name: Avro Java core - Maven tests
+    name: Avro Java core - selected JUnit tests
     runs-on: ubuntu-latest
 
     steps:
@@ -52,13 +58,16 @@ jobs:
           java -version
           mvn -version
           echo "JAVA_HOME=$JAVA_HOME"
-          ls -la ~/.m2 || true
-          cat ~/.m2/toolchains.xml || true
 
-      - name: Run Avro Java tests
+      - name: Check selected test exists
         run: |
-          mvn -B -pl lang/java/avro -am \
+          ls -l lang/java/avro/src/test/java/org/apache/avro/TestSchema.java
+          grep -n "class TestSchema" lang/java/avro/src/test/java/org/apache/avro/TestSchema.java
+
+      - name: Run selected Avro tests
+        run: |
+          mvn -B -pl lang/java/avro \
             -Dspotless.check.skip=true \
             -Dcheckstyle.skip=true \
             -Dtest=TestSchema \
-            clean test
+            clean test jacoco:report
