@@ -64,10 +64,10 @@ jobs:
           ls -l lang/java/avro/src/test/java/org/apache/avro/TestSchema.java
           grep -n "class TestSchema" lang/java/avro/src/test/java/org/apache/avro/TestSchema.java
 
-      - name: Run selected Avro tests
+      - name: Run all tests in org.apache.avro folder
         run: |
           mvn -B -pl lang/java/avro \
             -Dspotless.check.skip=true \
             -Dcheckstyle.skip=true \
-            -Dtest=TestSchema \
+            -Dsurefire.includes=**/org/apache/avro/*.java \
             clean test jacoco:report
