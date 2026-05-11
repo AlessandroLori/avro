@@ -6,11 +6,23 @@ on:
       - main
       - master
       - develop
+    paths:
+      - 'lang/java/**'
+      - 'pom.xml'
+      - '.mvn/**'
+      - '.github/workflows/java-ci.yml'
+
   pull_request:
     branches:
       - main
       - master
       - develop
+    paths:
+      - 'lang/java/**'
+      - 'pom.xml'
+      - '.mvn/**'
+      - '.github/workflows/java-ci.yml'
+
   workflow_dispatch:
 
 permissions:
@@ -18,7 +30,7 @@ permissions:
 
 jobs:
   avro-core-tests:
-    name: Avro core - Maven tests
+    name: Avro Java core - Maven tests
     runs-on: ubuntu-latest
 
     steps:
@@ -43,10 +55,10 @@ jobs:
           ls -la ~/.m2 || true
           cat ~/.m2/toolchains.xml || true
 
-      - name: TestSchema
+      - name: Run Avro Java tests
         run: |
-          mvn -B -pl lang/java/avro \
+          mvn -B -pl lang/java/avro -am \
             -Dspotless.check.skip=true \
-            -Dcheckstyle.skip= true \
+            -Dcheckstyle.skip=true \
             -Dtest=TestSchema \
             clean test
