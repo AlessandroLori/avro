@@ -66,11 +66,11 @@ jobs:
 
       - name: Run all stable tests in org.apache.avro folder
         run: |
-            mvn -B -pl lang/java/avro \
-              -Dspotless.check.skip=true \
-              -Dcheckstyle.skip=true \
-              '-Dsurefire.includes=**/org/apache/avro/*.java' \
-              '-Dsurefire.excludes=**/org/apache/avro/LTestSchema.java,**/org/apache/avro/LTestSchemaClean.java,**/org/apache/avro/TestLLMFewShotDocSchema.java,**/org/apache/avro/TestLLMCodeSchema.java, **/org/apache/avro/TestLLMFewShotCodeSchema2.java' \
-              clean test jacoco:report  
+          mvn -B -pl lang/java/avro \
+            -Dspotless.check.skip=true \
+            -Dcheckstyle.skip=true \
+            '-Dsurefire.includes=**/org/apache/avro/*.java' \
+            '-Dsurefire.excludes=**/org/apache/avro/LTestSchema.java,**/org/apache/avro/LTestSchemaClean.java,**/org/apache/avro/TestLLMFewShotDocSchema.java,**/org/apache/avro/TestLLMCodeSchema.java,**/org/apache/avro/TestLLMFewShotCodeSchema.java,**/org/apache/avro/TestLLMFewShotCodeSchema2.java' \
+            clean test jacoco:report
           
           
