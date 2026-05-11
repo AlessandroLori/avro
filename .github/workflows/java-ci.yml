@@ -43,9 +43,10 @@ jobs:
           ls -la ~/.m2 || true
           cat ~/.m2/toolchains.xml || true
 
-      - name: Run Mockito smoke test
+      - name: TestSchema
         run: |
           mvn -B -pl lang/java/avro \
             -Dspotless.check.skip=true \
-            -Dtest=TestMockitoSmoke \
+            -Dcheckstyle.skip= true \
+            -Dtest=TestSchema \
             clean test
