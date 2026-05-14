@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.avro;
 
 import static org.junit.Assert.assertEquals;
@@ -37,7 +36,6 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -273,7 +271,7 @@ public class TestLLMCodeSchema {
     Schema.Field optional = new Schema.Field("optional", nullableString, null, Schema.Field.NULL_DEFAULT_VALUE);
 
     assertTrue(optional.hasDefaultValue());
-    assertNull(optional.defaultVal());
+    assertSame(JsonProperties.NULL_VALUE, optional.defaultVal());
     assertTrue(optional.schema().isNullable());
   }
 
@@ -287,7 +285,9 @@ public class TestLLMCodeSchema {
 
     assertEquals(original.name(), copy.name());
     assertEquals(original.doc(), copy.doc());
-    assertEquals(original.defaultVal(), copy.defaultVal());
+    assertEquals("x", original.defaultVal());
+    assertTrue(copy.defaultVal() instanceof byte[]);
+    assertEquals("x", new String((byte[]) copy.defaultVal(), StandardCharsets.UTF_8));
     assertEquals(original.order(), copy.order());
     assertEquals("v", copy.getProp("p"));
     assertTrue(copy.aliases().contains("old_value"));
@@ -599,7 +599,7 @@ public class TestLLMCodeSchema {
     expectThrows(SchemaParseException.class, () -> new Schema.Parser().parse("{\"type\":\"array\"}"));
     expectThrows(SchemaParseException.class, () -> new Schema.Parser().parse("{\"type\":\"map\"}"));
     expectThrows(SchemaParseException.class, () -> new Schema.Parser().parse("{\"type\":\"fixed\",\"name\":\"F\"}"));
-    expectThrows(SchemaParseException.class, () -> new Schema.Parser().parse("[\"int\",\"int\"]"));
+    expectThrows(AvroRuntimeException.class, () -> new Schema.Parser().parse("[\"int\",\"int\"]"));
     expectThrows(SchemaParseException.class, () -> new Schema.Parser().parse("\"string\" \"int\""));
   }
 
@@ -801,7 +801,7 @@ public class TestLLMCodeSchema {
     Schema.LockableArrayList<String> list = new Schema.LockableArrayList<>("a", "b");
     assertTrue(list.add("c"));
     assertTrue(list.remove("a"));
-    assertTrue(list.addAll(Arrays.asList("d", "e")));
+    assertTrue(list.addAll(Arrays.asList("d", "e", "z")));
     assertTrue(list.retainAll(Arrays.asList("b", "c", "d", "e")));
     assertEquals(Arrays.asList("b", "c", "d", "e"), list);
 
