@@ -40,7 +40,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
 import org.apache.avro.path.TracingAvroTypeException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -427,8 +427,9 @@ public class TestToTSchema {
 
     assertFalse(absent.hasDefaultValue());
     assertNull(absent.defaultVal());
+
     assertTrue(explicitNull.hasDefaultValue());
-    assertNull(explicitNull.defaultVal());
+    assertSame(JsonProperties.NULL_VALUE, explicitNull.defaultVal());
   }
 
   @Test
@@ -500,13 +501,16 @@ public class TestToTSchema {
     Schema schema = parser.parse("{\"type\":\"record\",\"name\":\"Lenient\",\"fields\":["
         + "{\"name\":\"id\",\"type\":\"int\",\"default\":\"bad\"}]}");
 
+    Schema.Field field = schema.getField("id");
+
     assertFalse(parser.getValidateDefaults());
-    assertEquals("bad", schema.getField("id").defaultVal());
+    assertTrue(field.hasDefaultValue());
+    assertEquals("bad", field.defaultValue().asText());
   }
 
   @Test
-  public void parserWithNoValidationAllowsInvalidName() {
-    Schema schema = new Schema.Parser(NameValidator.NO_VALIDATION)
+  public void parserWithNullValidatorDisablesNameValidation() {
+    Schema schema = new Schema.Parser((NameValidator) null)
         .parse("{\"type\":\"record\",\"name\":\"1invalid\",\"fields\":[]}");
 
     assertEquals("1invalid", schema.getName());
@@ -521,14 +525,18 @@ public class TestToTSchema {
     Schema holder = iterableParser.parse("{\"type\":\"record\",\"name\":\"Holder\",\"namespace\":\"example.avro\","
         + "\"fields\":[{\"name\":\"known\",\"type\":\"Known\"}]}");
 
-    assertSame(known, holder.getField("known").schema());
+    assertEquals(known, holder.getField("known").schema());
+    assertEquals("example.avro.Known", holder.getField("known").schema().getFullName());
 
     Map<String, Schema> typeMap = new LinkedHashMap<>();
     typeMap.put(known.getFullName(), known);
     Schema.Parser mapParser = new Schema.Parser().addTypes(typeMap);
+
     Schema another = mapParser.parse("{\"type\":\"record\",\"name\":\"AnotherHolder\",\"namespace\":\"example.avro\","
         + "\"fields\":[{\"name\":\"known\",\"type\":\"example.avro.Known\"}]}");
-    assertSame(known, another.getField("known").schema());
+
+    assertEquals(known, another.getField("known").schema());
+    assertEquals("example.avro.Known", another.getField("known").schema().getFullName());
   }
 
   @Test
@@ -629,6 +637,7 @@ public class TestToTSchema {
   public void deprecatedThreadLocalValidationControlsAffectManualConstructionAndAreRestored() {
     NameValidator previousValidator = Schema.getNameValidator();
     boolean previousDefaultValidation = Schema.getValidateDefaults();
+
     try {
       Schema.setNameValidator(NameValidator.NO_VALIDATION);
       Schema unusualName = Schema.createRecord("1record", null, null, false, Collections.<Schema.Field>emptyList());
@@ -636,7 +645,9 @@ public class TestToTSchema {
 
       Schema.setValidateDefaults(false);
       Schema.Field badDefault = new Schema.Field("id", intSchema(), null, "not an int");
-      assertEquals("not an int", badDefault.defaultVal());
+
+      assertTrue(badDefault.hasDefaultValue());
+      assertEquals("not an int", badDefault.defaultValue().asText());
     } finally {
       Schema.setNameValidator(previousValidator);
       Schema.setValidateDefaults(previousDefaultValidation);
@@ -689,9 +700,14 @@ public class TestToTSchema {
 
     assertTrue(parsed instanceof Map);
     Map<?, ?> map = (Map<?, ?>) parsed;
+
     assertEquals(Integer.valueOf(1), map.get("a"));
     assertTrue(map.get("b") instanceof List);
-    assertEquals(Arrays.asList(Boolean.TRUE, null, "x"), map.get("b"));
+
+    List<?> values = (List<?>) map.get("b");
+    assertEquals(Boolean.TRUE, values.get(0));
+    assertSame(JsonProperties.NULL_VALUE, values.get(1));
+    assertEquals("x", values.get(2));
 
     assertEquals("text", Schema.parseJsonToObject("\"text\""));
   }
