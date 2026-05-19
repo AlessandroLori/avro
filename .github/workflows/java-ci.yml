@@ -64,13 +64,11 @@ jobs:
           ls -l lang/java/avro/src/test/java/org/apache/avro/TestSchema.java
           grep -n "class TestSchema" lang/java/avro/src/test/java/org/apache/avro/TestSchema.java
 
-      - name: Run all stable tests in org.apache.avro folder
+      - name: Run all stable tests under org.apache.avro
         run: |
-          mvn -B -pl lang/java/avro \
+          mvn -U -B -pl lang/java/avro \
             -Dspotless.check.skip=true \
             -Dcheckstyle.skip=true \
-            '-Dsurefire.includes=**/org/apache/avro/*.java' \
-            '-Dsurefire.excludes=**/org/apache/avro/LTestSchema.java,**/org/apache/avro/LTestSchemaClean.java,**/org/apache/avro/TestLLMFewShotDocSchema.java,**/org/apache/avro/TestLLMCodeSchema.java,**/org/apache/avro/TestLLMFewShotCodeSchema.java,**/org/apache/avro/TestLLMFewShotCodeSchema2.java' \
+            '-Dsurefire.includes=**/org/apache/avro/**/*.java' \
+            '-Dsurefire.excludes=**/org/apache/avro/randoop/**,**/*Randoop*.java,**/*_ESTest.java,**/*_ESTest_scaffolding.java,**/org/apache/avro/LTestSchema.java,**/org/apache/avro/LTestSchemaClean.java,**/org/apache/avro/TestLLMFewShotDocSchema.java,**/org/apache/avro/TestLLMCodeSchema.java,**/org/apache/avro/TestLLMFewShotCodeSchema.java,**/org/apache/avro/TestLLMFewShotCodeSchema2.java' \
             clean test jacoco:report
-          
-          
