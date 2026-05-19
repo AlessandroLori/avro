@@ -50,6 +50,8 @@
     <pitest.version>1.23.1</pitest.version>
     <pitest.junit5.plugin.version>1.2.3</pitest.junit5.plugin.version>
 
+    <evosuite.version>1.0.6</evosuite.version>
+
   </properties>
 
   <build>
@@ -218,7 +220,7 @@
     <dependency>
       <groupId>org.evosuite</groupId>
       <artifactId>evosuite-standalone-runtime</artifactId>
-      <version>1.2.0</version>
+      <version>${evosuite.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -363,18 +365,11 @@
       <id>evosuite</id>
 
       <properties>
-        <evosuiteVersion>1.2.0</evosuiteVersion>
+        <evosuiteVersion>${evosuite.version}</evosuiteVersion>
         <evosuiteTargetFolder>src/test/evosuite</evosuiteTargetFolder>
       </properties>
 
       <dependencies>
-        <dependency>
-          <groupId>org.evosuite</groupId>
-          <artifactId>evosuite-standalone-runtime</artifactId>
-          <version>${evosuiteVersion}</version>
-          <scope>test</scope>
-        </dependency>
-
         <dependency>
           <groupId>junit</groupId>
           <artifactId>junit</artifactId>
