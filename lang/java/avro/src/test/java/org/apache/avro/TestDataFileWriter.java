@@ -66,8 +66,7 @@ public class TestDataFileWriter {
   /*
    * Verifica di interazione con @Mock Mockito.
    *
-   * Obiettivo:
-   * isolare DataFileWriter dalla serializzazione reale e controllare che
+   * tocca isolare DataFileWriter dalla serializzazione reale e controllare che
    * append(datum) deleghi la scrittura al DatumWriter ricevuto nel costruttore.
    *
    * Classe di equivalenza: valid_instance.
@@ -94,8 +93,7 @@ public class TestDataFileWriter {
   /*
    * Verifica di interazione con mock Mockito su append multiple.
    *
-   * Obiettivo:
-   * controllare che ogni chiamata valida ad append(datum) produca una chiamata
+   * tocca controllare che ogni chiamata valida ad append(datum) produca una chiamata
    * distinta a DatumWriter.write(...).
    *
    * Classe di equivalenza: valid_instance.
@@ -126,8 +124,7 @@ public class TestDataFileWriter {
   /*
    * Verifica di errore controllato con mock Mockito dichiarato tramite @Mock.
    *
-   * Obiettivo:
-   * simulare una failure del DatumWriter durante la serializzazione del datum.
+   * tocca simulare una failure del DatumWriter durante la serializzazione del datum.
    * Il mock è necessario perché permette di forzare l'errore esattamente nella
    * dipendenza usata da DataFileWriter.append(...), senza coinvolgere un datum
    * invalido o un file system guasto.
@@ -165,8 +162,7 @@ public class TestDataFileWriter {
   /*
    * Verifica di recovery dopo AppendWriteException con mock Mockito.
    *
-   * Obiettivo:
-   * controllare il caso documentato in cui una failure durante la scrittura del
+   * tocca controllare il caso documentato in cui una failure durante la scrittura del
    * datum non deve rendere il writer definitivamente inutilizzabile.
    *
    * Classe di equivalenza: invalid_instance -> valid_instance.
@@ -206,8 +202,7 @@ public class TestDataFileWriter {
   /*
    * Verifica funzionale su datum record valido.
    *
-   * Obiettivo:
-   * usare un GenericDatumWriter reale per verificare che append accetti un
+   * tocca usare un GenericDatumWriter reale per verificare che append accetti un
    * record conforme allo schema.
    *
    * Classe di equivalenza: valid_instance.
@@ -234,8 +229,7 @@ public class TestDataFileWriter {
   /*
    * Verifica boundary values per campo int.
    *
-   * Obiettivo:
-   * controllare che append accetti i valori limite del tipo int quando il datum
+   * tocca controllare che append accetti i valori limite del tipo int quando il datum
    * è conforme allo schema.
    *
    * Classe di equivalenza: valid_instance.
@@ -262,8 +256,7 @@ public class TestDataFileWriter {
   /*
    * Verifica boundary values per campo string.
    *
-   * Obiettivo:
-   * controllare che i dati stringa possano essere vuoti o Unicode. A differenza
+   * tocca controllare che i dati stringa possano essere vuoti o Unicode. A differenza
    * dei name/namespace Avro, qui Unicode è un valore valido del dato stringa.
    *
    * Classe di equivalenza: valid_instance.
@@ -292,8 +285,7 @@ public class TestDataFileWriter {
   /*
    * Verifica datum invalido: campo required null.
    *
-   * Obiettivo:
-   * controllare che append rifiuti un record in cui un campo string non nullable
+   * tocca controllare che append rifiuti un record in cui un campo string non nullable
    * viene valorizzato a null.
    *
    * Classe di equivalenza: invalid_instance.
@@ -317,8 +309,7 @@ public class TestDataFileWriter {
   /*
    * Verifica datum invalido: tipo del campo non conforme allo schema.
    *
-   * Obiettivo:
-   * controllare che append rifiuti un record in cui un campo int viene
+   * tocca controllare che append rifiuti un record in cui un campo int viene
    * valorizzato con una stringa.
    *
    * Classe di equivalenza: invalid_instance.
@@ -342,8 +333,7 @@ public class TestDataFileWriter {
   /*
    * Verifica datum null valido quando lo schema è una union nullable.
    *
-   * Obiettivo:
-   * controllare che append accetti null quando lo schema include esplicitamente
+   * tocca controllare che append accetti null quando lo schema include esplicitamente
    * il branch null.
    *
    * Classe di equivalenza: null_instance.
@@ -367,8 +357,7 @@ public class TestDataFileWriter {
   /*
    * Verifica datum null invalido quando lo schema non è nullable.
    *
-   * Obiettivo:
-   * controllare che append rifiuti null quando lo schema è string e non include
+   * tocca controllare che append rifiuti null quando lo schema è string e non include
    * il tipo null.
    *
    * Classe di equivalenza: null_instance.
@@ -390,8 +379,7 @@ public class TestDataFileWriter {
    * Test di integrazione: DataFileWriter + GenericDatumWriter + DataFileReader
    * + GenericDatumReader.
    *
-   * Obiettivo:
-   * verificare che un datum scritto tramite append venga realmente salvato in
+   * tocca verificare che un datum scritto tramite append venga realmente salvato in
    * un file Avro leggibile e che lo schema embedded sia quello atteso.
    *
    * Classe di equivalenza: valid_instance.
@@ -429,8 +417,7 @@ public class TestDataFileWriter {
   /*
    * Test di integrazione su append multiple.
    *
-   * Obiettivo:
-   * verificare che due record scritti con due chiamate consecutive ad append
+   * tocca verificare che due record scritti con due chiamate consecutive ad append
    * siano entrambi leggibili dal file Avro prodotto e che l'ordine sia
    * preservato.
    *

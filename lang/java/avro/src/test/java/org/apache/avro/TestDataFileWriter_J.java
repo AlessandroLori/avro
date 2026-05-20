@@ -44,12 +44,7 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.Test;
 
-/**
- * Black-box tests for DataFileWriter append operations not covered by append(D datum).
- *
- * <p>The tests focus on documented public behaviours of appendTo(File),
- * appendTo(SeekableInput, OutputStream) and appendAllFrom(DataFileStream, boolean).
- */
+
 public class TestDataFileWriter_J {
   private static final Schema ID_SCHEMA = new Schema.Parser().parse("{"
       + "\"type\":\"record\","

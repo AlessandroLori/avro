@@ -64,8 +64,7 @@ public class TestNonASCII {
   /*
    * Questo test verifica il primo punto della propagazione.
    *
-   * Obiettivo:
-   * capire se il parser si limita ad accettare il namespace non-ASCII oppure
+   * tocca capire se il parser si limita ad accettare il namespace non-ASCII oppure
    * se lo conserva realmente dentro l'oggetto Schema.
    *
    * Se namespace e fullname contengono "组织.apache", allora il valore non-ASCII
@@ -89,8 +88,7 @@ public class TestNonASCII {
    *
    * JSON iniziale -> Schema -> JSON serializzato -> Schema riparsato.
    *
-   * Obiettivo:
-   * verificare se il namespace non-ASCII sopravvive anche dopo la
+   * tocca verificare se il namespace non-ASCII sopravvive anche dopo la
    * serializzazione dello Schema in JSON e il successivo parsing.
    *
    * Se il round-trip conserva namespace e fullname, allora il valore Unicode
@@ -113,8 +111,7 @@ public class TestNonASCII {
   /*
    * Questo test verifica la canonical form.
    *
-   * Obiettivo:
-   * capire se il namespace non-ASCII entra nella rappresentazione canonica
+   * tocca capire se il namespace non-ASCII entra nella rappresentazione canonica
    * dello schema.
    *
    * La canonical form viene usata per rappresentare uno schema in forma
@@ -140,8 +137,7 @@ public class TestNonASCII {
   /*
    * Questo test verifica il fingerprint.
    *
-   * Obiettivo:
-   * verificare che lo schema con namespace non-ASCII produca un fingerprint
+   * tocca verificare che lo schema con namespace non-ASCII produca un fingerprint
    * stabile dopo il round-trip Schema -> JSON -> Schema.
    *
    * Se i fingerprint coincidono, Avro è internamente stabile rispetto a questa
@@ -162,8 +158,7 @@ public class TestNonASCII {
    * Questo test verifica la compatibilità tra due schemi equivalenti,
    * entrambi con lo stesso namespace non-ASCII.
    *
-   * Obiettivo:
-   * verificare che Avro riesca a usare normalmente due schema con lo stesso
+   * tocca verificare che Avro riesca a usare normalmente due schema con lo stesso
    * fullname Unicode nella logica di compatibilità.
    */
   @Test
@@ -187,8 +182,7 @@ public class TestNonASCII {
    * reader = org.apache.User
    * writer = 组织.apache.User
    *
-   * Obiettivo:
-   * verificare che la compatibilità Avro non fallisca solo perché cambia il
+   * tocca verificare che la compatibilità Avro non fallisca solo perché cambia il
    * namespace, se il nome non qualificato del record è lo stesso.
    *
    * Questo risultato è importante perché mostra che il namespace non-ASCII può
@@ -217,8 +211,7 @@ public class TestNonASCII {
    * reader = org.apache.User
    * writer = 组织.apache.DifferentUser
    *
-   * Obiettivo:
-   * verificare che Avro segnali NAME_MISMATCH quando il nome non qualificato
+   * tocca verificare che Avro segnali NAME_MISMATCH quando il nome non qualificato
    * del record è diverso.
    */
   @Test
@@ -245,8 +238,7 @@ public class TestNonASCII {
    * Qui non usiamo ancora SpecificCompiler: verifichiamo solo se il compilatore
    * Java standard accetta un package derivato dal namespace non-ASCII.
    *
-   * Obiettivo:
-   * capire se, almeno per javac, un package come "组织.apache" è compilabile.
+   * tocca capire se, almeno per javac, un package come "组织.apache" è compilabile.
    * Questo non dimostra che la code generation Avro sia sicura, ma verifica
    * un primo vincolo della toolchain Java.
    */

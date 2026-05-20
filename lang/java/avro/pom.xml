@@ -16,8 +16,10 @@
    limitations under the License.
 -->
 <project
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-  xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -36,6 +38,7 @@
 
   <properties>
     <main.basedir>${project.parent.parent.basedir}</main.basedir>
+
     <osgi.import>
       !org.apache.avro*,
       com.fasterxml.jackson*,
@@ -52,6 +55,9 @@
 
     <evosuite.version>1.0.6</evosuite.version>
 
+    <!-- Default: le esecuzioni extra di Surefire restano attive.
+         Nei profili generated-test vengono disattivate. -->
+    <generated.tests.skip.extra.surefire>false</generated.tests.skip.extra.surefire>
   </properties>
 
   <build>
@@ -66,6 +72,7 @@
         <directory>src/main/resources</directory>
       </resource>
     </resources>
+
     <testResources>
       <testResource>
         <directory>src/test/resources</directory>
@@ -82,6 +89,9 @@
 
     <plugins>
 
+      <!-- Default safety:
+           esclude i test generati da EvoSuite e Randoop dal normale mvn test.
+           I profili evosuite-only e randoop-only sovrascrivono questa configurazione. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -89,9 +99,12 @@
           <testExcludes>
             <testExclude>**/randoop/**</testExclude>
             <testExclude>**/*Randoop*.java</testExclude>
+            <testExclude>**/*_ESTest.java</testExclude>
+            <testExclude>**/*_ESTest_scaffolding.java</testExclude>
           </testExcludes>
         </configuration>
       </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
@@ -110,6 +123,7 @@
         <configuration>
           <parallel>none</parallel>
         </configuration>
+
         <executions>
           <execution>
             <id>test-with-custom-coders</id>
@@ -118,11 +132,13 @@
               <goal>test</goal>
             </goals>
             <configuration>
+              <skip>${generated.tests.skip.extra.surefire}</skip>
               <systemPropertyVariables>
                 <org.apache.avro.specific.use_custom_coders>true</org.apache.avro.specific.use_custom_coders>
               </systemPropertyVariables>
             </configuration>
           </execution>
+
           <execution>
             <id>test-without-fast-reader</id>
             <phase>test</phase>
@@ -130,6 +146,7 @@
               <goal>test</goal>
             </goals>
             <configuration>
+              <skip>${generated.tests.skip.extra.surefire}</skip>
               <systemPropertyVariables>
                 <org.apache.avro.fastread>false</org.apache.avro.fastread>
               </systemPropertyVariables>
@@ -138,13 +155,36 @@
         </executions>
       </plugin>
 
+      <!-- Plugin PIT dichiarato globalmente così il prefisso pitest funziona sempre.
+           Non viene eseguito da solo: parte solo se lo chiami da comando Maven. -->
+      <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <version>${pitest.version}</version>
+        <configuration>
+          <threads>1</threads>
+          <timestampedReports>false</timestampedReports>
+          <outputFormats>
+            <param>HTML</param>
+            <param>XML</param>
+            <param>CSV</param>
+          </outputFormats>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-junit5-plugin</artifactId>
+            <version>${pitest.junit5.plugin.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
       <!-- Always run integration tests -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-invoker-plugin</artifactId>
         <configuration>
           <failIfNoProjects>true</failIfNoProjects>
-          <!--<debug>true</debug>-->
           <streamLogsOnFailures>true</streamLogsOnFailures>
           <projectsDirectory>./src/it</projectsDirectory>
           <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
@@ -155,7 +195,6 @@
           <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
           <settingsFile>./src/it/settings.xml</settingsFile>
           <environmentVariables>
-            <!-- Some tests must be disabled when running within the invoker plugin context -->
             <WithinInvokerPlugin>true</WithinInvokerPlugin>
           </environmentVariables>
           <goals>
@@ -225,9 +264,7 @@
     </plugins>
   </build>
 
-
   <dependencies>
-
     <dependency>
       <groupId>org.evosuite</groupId>
       <artifactId>evosuite-standalone-runtime</artifactId>
@@ -239,34 +276,41 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
     </dependency>
+
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.xerial.snappy</groupId>
       <artifactId>snappy-java</artifactId>
       <optional>true</optional>
     </dependency>
+
     <dependency>
       <groupId>org.tukaani</groupId>
       <artifactId>xz</artifactId>
       <optional>true</optional>
     </dependency>
+
     <dependency>
       <groupId>com.github.luben</groupId>
       <artifactId>zstd-jni</artifactId>
       <optional>true</optional>
     </dependency>
+
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-library</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
@@ -277,12 +321,13 @@
 
   <profiles>
 
-
+    <!-- Profilo per eseguire SOLO i test EvoSuite -->
     <profile>
       <id>evosuite-only</id>
 
       <properties>
         <surefireArgLine></surefireArgLine>
+        <generated.tests.skip.extra.surefire>true</generated.tests.skip.extra.surefire>
       </properties>
 
       <build>
@@ -291,7 +336,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
-            <configuration>
+            <configuration combine.self="override">
               <testIncludes>
                 <testInclude>**/*_ESTest.java</testInclude>
                 <testInclude>**/*_ESTest_scaffolding.java</testInclude>
@@ -306,13 +351,16 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-surefire-plugin</artifactId>
-            <configuration>
+            <configuration combine.self="override">
               <parallel>none</parallel>
+              <reuseForks>false</reuseForks>
+              <forkCount>1</forkCount>
 
               <argLine>
                 @{surefireArgLine}
-                -Djava.awt.headless=true
+                -javaagent:${settings.localRepository}/org/evosuite/evosuite-standalone-runtime/${evosuite.version}/evosuite-standalone-runtime-${evosuite.version}.jar
                 -Djava.security.manager=allow
+                -Djava.awt.headless=true
                 --add-opens=java.desktop/java.awt=ALL-UNNAMED
                 --add-opens=java.desktop/javax.swing=ALL-UNNAMED
                 --add-opens=java.base/java.lang=ALL-UNNAMED
@@ -322,6 +370,16 @@
                 --add-opens=java.base/java.net=ALL-UNNAMED
                 --add-opens=java.base/java.nio=ALL-UNNAMED
               </argLine>
+
+              <includes>
+                <include>**/*_ESTest.java</include>
+              </includes>
+
+              <excludes>
+                <exclude>**/*_ESTest_scaffolding.java</exclude>
+                <exclude>**/randoop/**</exclude>
+                <exclude>**/*Randoop*.java</exclude>
+              </excludes>
 
               <properties>
                 <property>
@@ -335,7 +393,7 @@
           <plugin>
             <groupId>org.pitest</groupId>
             <artifactId>pitest-maven</artifactId>
-            <version>1.23.1</version>
+            <version>${pitest.version}</version>
             <configuration>
               <jvm>/usr/lib/jvm/java-17-openjdk-amd64/bin/java</jvm>
 
@@ -365,6 +423,12 @@
 
               <threads>1</threads>
               <timestampedReports>false</timestampedReports>
+
+              <outputFormats>
+                <param>HTML</param>
+                <param>XML</param>
+                <param>CSV</param>
+              </outputFormats>
             </configuration>
           </plugin>
 
@@ -372,6 +436,87 @@
       </build>
     </profile>
 
+    <!-- Profilo per eseguire SOLO i test Randoop -->
+    <profile>
+      <id>randoop-only</id>
+
+      <properties>
+        <surefireArgLine></surefireArgLine>
+        <generated.tests.skip.extra.surefire>true</generated.tests.skip.extra.surefire>
+      </properties>
+
+      <build>
+        <plugins>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration combine.self="override">
+              <testIncludes>
+                <testInclude>**/randoop/**/*RegressionTest?.java</testInclude>
+                <testInclude>**/randoop/**/*RegressionTest??.java</testInclude>
+              </testIncludes>
+              <testExcludes>
+                <testExclude>**/randoop/**/*RegressionTest.java</testExclude>
+                <testExclude>**/*ErrorTest*.java</testExclude>
+                <testExclude>**/*_ESTest.java</testExclude>
+                <testExclude>**/*_ESTest_scaffolding.java</testExclude>
+              </testExcludes>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration combine.self="override">
+              <parallel>none</parallel>
+
+              <argLine>
+                @{surefireArgLine}
+              </argLine>
+
+              <includes>
+                <include>**/randoop/**/*RegressionTest?.java</include>
+                <include>**/randoop/**/*RegressionTest??.java</include>
+              </includes>
+
+              <excludes>
+                <exclude>**/randoop/**/*RegressionTest.java</exclude>
+                <exclude>**/*ErrorTest*.java</exclude>
+                <exclude>**/*_ESTest.java</exclude>
+                <exclude>**/*_ESTest_scaffolding.java</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-maven</artifactId>
+            <version>${pitest.version}</version>
+            <configuration>
+              <threads>1</threads>
+              <timestampedReports>false</timestampedReports>
+
+              <excludedTestClasses>
+                <param>*_ESTest</param>
+                <param>*_ESTest_scaffolding</param>
+                <param>*ErrorTest*</param>
+                <param>*RandoopRegressionTest</param>
+              </excludedTestClasses>
+
+              <outputFormats>
+                <param>HTML</param>
+                <param>XML</param>
+                <param>CSV</param>
+              </outputFormats>
+            </configuration>
+          </plugin>
+
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- Profilo originale EvoSuite generation -->
     <profile>
       <id>evosuite</id>
 
@@ -431,6 +576,7 @@
                 --add-opens java.desktop/java.awt=ALL-UNNAMED
                 --add-opens java.desktop/javax.swing=ALL-UNNAMED
               </argLine>
+
               <properties>
                 <property>
                   <name>listener</name>
@@ -442,6 +588,7 @@
         </plugins>
       </build>
     </profile>
+
   </profiles>
 
 </project>

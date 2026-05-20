@@ -30,14 +30,6 @@ import java.util.List;
 
 import org.junit.Test;
 
-/**
- * Black-box tests for advanced Schema parsing cases.
- *
- * <p>The tests focus on schema structures that are not covered by the basic
- * product of equivalence classes over type/name/namespace/logicalType. The goal
- * is to exercise documented Avro schema features such as fields, defaults,
- * aliases, enum symbols, fixed sizes, array/map nested schemas and unions.</p>
- */
 public class TestSchema_J {
 
   @Test

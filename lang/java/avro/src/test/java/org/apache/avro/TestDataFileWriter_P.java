@@ -48,13 +48,6 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.Test;
 
-/**
- * Mutation-oriented black-box tests for DataFileWriter.
- *
- * <p>The tests refine the oracles used for appendTo(File),
- * appendTo(SeekableInput, OutputStream), appendAllFrom(DataFileStream, boolean)
- * and append(D datum), without relying on implementation details.
- */
 public class TestDataFileWriter_P {
   private static final String CUSTOM_META_KEY = "custom.test.key";
   private static final String CUSTOM_META_VALUE = "custom-test-value";

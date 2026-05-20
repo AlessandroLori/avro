@@ -30,9 +30,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 
-/**
- * Additional black-box tests for Schema default validation and alias rewriting.
- */
 public class TestSchema_J2 {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
