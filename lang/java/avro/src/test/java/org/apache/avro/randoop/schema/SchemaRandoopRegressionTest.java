@@ -1,4 +1,4 @@
-package org.apache.avro.randoop;
+package org.apache.avro.randoop.schema;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;

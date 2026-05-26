@@ -1,4 +1,4 @@
-package org.apache.avro.randoop;
+package org.apache.avro.randoop.datafilewriter;
 
 import org.junit.FixMethodOrder;
 import org.junit.Test;

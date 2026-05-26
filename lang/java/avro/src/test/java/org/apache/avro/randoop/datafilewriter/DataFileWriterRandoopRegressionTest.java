@@ -1,4 +1,4 @@
-package org.apache.avro.randoop;
+package org.apache.avro.randoop.datafilewriter;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
