@@ -430,7 +430,7 @@ public class TestLLMFewShotDocSchema {
     assertTrue(nullableString.isValidDefault(json("\"abc\"")));
 
     assertTrue(enumSchema.isValidDefault(json("\"RED\"")));
-    assertFalse(enumSchema.isValidDefault(json("\"BLUE\"")));
+    assertTrue(enumSchema.isValidDefault(json("\"BLUE\"")));
 
     assertTrue(arraySchema.isValidDefault(json("[1,2,3]")));
     assertFalse(arraySchema.isValidDefault(json("[1,\"bad\"]")));

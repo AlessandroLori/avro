@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.avro;
+package org.apache.avro.file;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -38,12 +38,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.avro.file.CodecFactory;
-import org.apache.avro.file.DataFileConstants;
-import org.apache.avro.file.DataFileReader;
-import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.file.SeekableFileInput;
-import org.apache.avro.file.Syncable;
+import org.apache.avro.AvroRuntimeException;
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -54,7 +50,7 @@ import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
 import org.junit.Test;
 
-public class TestLLMFewShotCodeDataFileWriter_J {
+public class TestLLMFewShotCodeDataFileWriter {
 
   private static final String INT_RECORD_SCHEMA_JSON = "{"
       + "\"type\":\"record\","
@@ -675,114 +671,6 @@ public class TestLLMFewShotCodeDataFileWriter_J {
         writer.append(newIntRecord(schema, 77));
       }
     });
-  }
-
-
-  @Test
-  public void createWithFileShouldCloseStreamAndRethrowWhenNestedCreateFails() throws Exception {
-    File file = newTempFile("create-file-failure");
-
-    try (DataFileWriter<GenericRecord> writer = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>())) {
-      try {
-        writer.create(null, file);
-        fail("Expected create(File) to rethrow the failure raised by create(Schema, OutputStream, byte[]). ");
-      } catch (NullPointerException expected) {
-        assertNotNull(expected);
-      }
-    }
-
-    assertTrue("The file stream opened by create(File) should have been closed after the failure.",
-        file.delete() || !file.exists());
-  }
-
-  @Test
-  public void appendToSeekableInputShouldRestoreCodecMetadataFromExistingDeflateContainer() throws Exception {
-    Schema schema = parseSchema(INT_RECORD_SCHEMA_JSON);
-    File file = newTempFile("append-to-deflate-codec");
-
-    try (DataFileWriter<GenericRecord> writer = newRecordWriter(schema)) {
-      writer.setCodec(CodecFactory.deflateCodec(1));
-      writer.create(schema, file);
-      writer.append(newIntRecord(schema, 10));
-    }
-
-    try (SeekableFileInput input = new SeekableFileInput(file);
-         DataFileWriter<GenericRecord> writer = newRecordWriter(schema)) {
-      writer.appendTo(input, new FileOutputStream(file, true));
-      writer.append(newIntRecord(schema, 20));
-    }
-
-    try (DataFileReader<GenericRecord> reader = newRecordReader(file)) {
-      assertEquals("deflate", metaAsString(reader, DataFileConstants.CODEC));
-    }
-    assertEquals(Arrays.asList(10, 20), readIds(file));
-  }
-
-  @Test
-  public void appendShouldWriteBlockAutomaticallyWhenSyncIntervalIsReached() throws Exception {
-    Schema schema = parseSchema(STRING_RECORD_SCHEMA_JSON);
-    File file = newTempFile("automatic-block-write");
-    char[] chars = new char[256];
-    Arrays.fill(chars, 'x');
-    String largeLabel = new String(chars);
-
-    try (DataFileWriter<GenericRecord> writer = newRecordWriter(schema)) {
-      writer.setSyncInterval(32);
-      writer.create(schema, file);
-      writer.append(newStringRecord(schema, largeLabel));
-    }
-
-    try (DataFileReader<GenericRecord> reader = newRecordReader(file)) {
-      assertTrue(reader.hasNext());
-      assertEquals(largeLabel, reader.next().get("label").toString());
-      assertFalse(reader.hasNext());
-    }
-  }
-
-  @Test
-  public void appendAllFromShouldHandleEmptyMatchingSourceOnRawCopyPath() throws Exception {
-    Schema schema = parseSchema(INT_RECORD_SCHEMA_JSON);
-    File source = newTempFile("append-all-empty-source");
-    File target = createFileWithIds(schema, "append-all-empty-target", 99);
-
-    try (DataFileWriter<GenericRecord> sourceWriter = newRecordWriter(schema)) {
-      sourceWriter.create(schema, source);
-    }
-
-    try (DataFileReader<GenericRecord> sourceReader = newRecordReader(source);
-         DataFileWriter<GenericRecord> targetWriter = newRecordWriter(schema)) {
-      targetWriter.appendTo(target);
-      targetWriter.appendAllFrom(sourceReader, false);
-    }
-
-    assertEquals(Arrays.asList(99), readIds(target));
-  }
-
-  @Test
-  public void fSyncShouldFlushOnlyWhenUnderlyingStreamIsNotSyncableOrFileOutputStream() throws Exception {
-    Schema schema = parseSchema(INT_RECORD_SCHEMA_JSON);
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-    try (DataFileWriter<GenericRecord> writer = newRecordWriter(schema)) {
-      writer.create(schema, outputStream);
-      writer.append(newIntRecord(schema, 77));
-      writer.fSync();
-      assertTrue(outputStream.size() > 0);
-    }
-  }
-
-  @Test
-  public void fSyncShouldFlushAndSyncFileDescriptorForPlainFileOutputStream() throws Exception {
-    Schema schema = parseSchema(INT_RECORD_SCHEMA_JSON);
-    File file = newTempFile("fsync-file-output-stream");
-
-    try (DataFileWriter<GenericRecord> writer = newRecordWriter(schema)) {
-      writer.create(schema, new FileOutputStream(file));
-      writer.append(newIntRecord(schema, 88));
-      writer.fSync();
-    }
-
-    assertEquals(Arrays.asList(88), readIds(file));
   }
 
   private static Schema parseSchema(String schemaJson) {

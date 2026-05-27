@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.avro;
+package org.apache.avro.file;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -40,7 +40,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
-import org.apache.avro.file.*;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;

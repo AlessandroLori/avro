@@ -1,4 +1,4 @@
-package org.apache.avro;
+package org.apache.avro.file;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -16,8 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-import org.apache.avro.file.DataFileReader;
-import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;

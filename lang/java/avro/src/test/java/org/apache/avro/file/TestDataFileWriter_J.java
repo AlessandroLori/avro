@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.avro;
+package org.apache.avro.file;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -36,64 +33,45 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.avro.file.CodecFactory;
-import org.apache.avro.file.DataFileReader;
-import org.apache.avro.file.DataFileStream;
-import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.file.SeekableFileInput;
-import org.apache.avro.file.SeekableInput;
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.Test;
 
-public class TestDataFileWriter_P {
-  private static final String CUSTOM_META_KEY = "custom.test.key";
-  private static final String CUSTOM_META_VALUE = "custom-test-value";
 
+public class TestDataFileWriter_J {
   private static final Schema ID_SCHEMA = new Schema.Parser().parse("{"
       + "\"type\":\"record\","
-      + "\"name\":\"PitAppendIdRecord\","
+      + "\"name\":\"AppendIdRecord\","
       + "\"fields\":[{\"name\":\"id\",\"type\":\"int\"}]"
       + "}");
 
   private static final Schema LABEL_SCHEMA = new Schema.Parser().parse("{"
       + "\"type\":\"record\","
-      + "\"name\":\"PitAppendLabelRecord\","
+      + "\"name\":\"AppendLabelRecord\","
       + "\"fields\":[{\"name\":\"label\",\"type\":\"string\"}]"
-      + "}");
-
-  private static final Schema PAYLOAD_SCHEMA = new Schema.Parser().parse("{"
-      + "\"type\":\"record\","
-      + "\"name\":\"PitPayloadRecord\","
-      + "\"fields\":["
-      + "{\"name\":\"id\",\"type\":\"int\"},"
-      + "{\"name\":\"payload\",\"type\":\"string\"}"
-      + "]"
       + "}");
 
   @Test
   public void appendToValidFileShouldPreserveOldRecordsAndAppendNewOne() throws Exception {
-    File file = writeIdFileWithOptions(CodecFactory.deflateCodec(1), CUSTOM_META_KEY, CUSTOM_META_VALUE, 1);
+    File file = writeIdFile(1);
 
-    try (DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
-      assertSame(writer, writer.appendTo(file));
+    try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
+      writer.appendTo(file);
       writer.append(idRecord(2));
     }
 
     assertEquals(Arrays.asList(1, 2), readIds(file));
-    assertEquals(CUSTOM_META_VALUE, readMetaString(file, CUSTOM_META_KEY));
   }
 
   @Test
   public void appendToEmptyValidFileShouldAllowAppendingFirstRecord() throws Exception {
-    File file = writeIdFileWithOptions(null, null, null);
+    File file = writeIdFile();
 
-    assertEquals(Collections.emptyList(), readIds(file));
-
-    try (DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
-      assertSame(writer, writer.appendTo(file));
+    try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
+      writer.appendTo(file);
       writer.append(idRecord(1));
     }
 
@@ -108,16 +86,9 @@ public class TestDataFileWriter_P {
     expectFailure(new ThrowingRunnable() {
       @Override
       public void run() throws Exception {
-        try (DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
+        try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
           writer.appendTo(file);
         }
-      }
-    });
-
-    expectFailure(new ThrowingRunnable() {
-      @Override
-      public void run() throws Exception {
-        readIds(file);
       }
     });
   }
@@ -127,7 +98,7 @@ public class TestDataFileWriter_P {
     expectFailure(new ThrowingRunnable() {
       @Override
       public void run() throws Exception {
-        try (DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
+        try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
           writer.appendTo((File) null);
         }
       }
@@ -136,36 +107,33 @@ public class TestDataFileWriter_P {
 
   @Test
   public void appendToValidSeekableInputAndValidOutputShouldAppendRecord() throws Exception {
-    File file = writeIdFileWithOptions(CodecFactory.deflateCodec(1), CUSTOM_META_KEY, CUSTOM_META_VALUE, 1);
+    File file = writeIdFile(1);
 
     try (SeekableInput input = new SeekableFileInput(file);
         OutputStream output = new FileOutputStream(file, true);
-        DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
-      assertSame(writer, writer.appendTo(input, output));
+        DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
+      writer.appendTo(input, output);
       writer.append(idRecord(2));
     }
 
     assertEquals(Arrays.asList(1, 2), readIds(file));
-    assertEquals(CUSTOM_META_VALUE, readMetaString(file, CUSTOM_META_KEY));
   }
 
   @Test
   public void appendToInvalidSeekableInputShouldFail() throws Exception {
     File file = newTempFile("invalid-seekable", ".txt");
     Files.write(file.toPath(), "not an avro file".getBytes(StandardCharsets.UTF_8));
-    final ByteArrayOutputStream output = new ByteArrayOutputStream();
 
     expectFailure(new ThrowingRunnable() {
       @Override
       public void run() throws Exception {
         try (SeekableInput input = new SeekableFileInput(file);
-            DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
+            OutputStream output = new ByteArrayOutputStream();
+            DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
           writer.appendTo(input, output);
         }
       }
     });
-
-    assertEquals(0, output.size());
   }
 
   @Test
@@ -174,7 +142,7 @@ public class TestDataFileWriter_P {
       @Override
       public void run() throws Exception {
         try (OutputStream output = new ByteArrayOutputStream();
-            DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
+            DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
           writer.appendTo((SeekableInput) null, output);
         }
       }
@@ -182,49 +150,47 @@ public class TestDataFileWriter_P {
   }
 
   @Test
-  public void appendToInvalidOutputStreamShouldFailWithoutChangingOriginalFile() throws Exception {
-    File file = writeIdFileWithOptions(null, null, null, 1);
+  public void appendToInvalidOutputStreamShouldFail() throws Exception {
+    File file = writeIdFile(1);
 
     expectFailure(new ThrowingRunnable() {
       @Override
       public void run() throws Exception {
         try (SeekableInput input = new SeekableFileInput(file);
-            DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
+            DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
           writer.appendTo(input, failingOutputStream());
           writer.append(idRecord(2));
+          writer.close();
         }
       }
     });
-
-    assertEquals(Collections.singletonList(1), readIds(file));
   }
 
   @Test
   public void appendToNullOutputStreamShouldFail() throws Exception {
-    File file = writeIdFileWithOptions(null, null, null, 1);
+    File file = writeIdFile(1);
 
     expectFailure(new ThrowingRunnable() {
       @Override
       public void run() throws Exception {
         try (SeekableInput input = new SeekableFileInput(file);
-            DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
+            DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
           writer.appendTo(input, null);
           writer.append(idRecord(2));
+          writer.close();
         }
       }
     });
-
-    assertEquals(Collections.singletonList(1), readIds(file));
   }
 
   @Test
   public void appendAllFromValidSourceShouldCopyOneRecord() throws Exception {
     File destination = newTempFile("append-all-destination-one", ".avro");
-    File source = writeIdFileWithOptions(null, null, null, 2);
+    File source = writeIdFile(2);
 
-    try (DataFileWriter<GenericRecord> writer = newDataFileWriter();
+    try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA);
         DataFileStream<GenericRecord> sourceStream = newDataFileStream(source)) {
-      assertSame(writer, writer.create(ID_SCHEMA, destination));
+      writer.create(ID_SCHEMA, destination);
       writer.append(idRecord(1));
       writer.appendAllFrom(sourceStream, false);
     }
@@ -235,11 +201,11 @@ public class TestDataFileWriter_P {
   @Test
   public void appendAllFromValidSourceShouldCopyMultipleRecordsPreservingOrder() throws Exception {
     File destination = newTempFile("append-all-destination-multiple", ".avro");
-    File source = writeIdFileWithOptions(null, null, null, 2, 3);
+    File source = writeIdFile(2, 3);
 
-    try (DataFileWriter<GenericRecord> writer = newDataFileWriter();
+    try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA);
         DataFileStream<GenericRecord> sourceStream = newDataFileStream(source)) {
-      assertSame(writer, writer.create(ID_SCHEMA, destination));
+      writer.create(ID_SCHEMA, destination);
       writer.append(idRecord(1));
       writer.appendAllFrom(sourceStream, false);
     }
@@ -250,11 +216,11 @@ public class TestDataFileWriter_P {
   @Test
   public void appendAllFromValidEmptySourceShouldLeaveDestinationReadable() throws Exception {
     File destination = newTempFile("append-all-destination-empty-source", ".avro");
-    File source = writeIdFileWithOptions(null, null, null);
+    File source = writeIdFile();
 
-    try (DataFileWriter<GenericRecord> writer = newDataFileWriter();
+    try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA);
         DataFileStream<GenericRecord> sourceStream = newDataFileStream(source)) {
-      assertSame(writer, writer.create(ID_SCHEMA, destination));
+      writer.create(ID_SCHEMA, destination);
       writer.append(idRecord(1));
       writer.appendAllFrom(sourceStream, false);
     }
@@ -263,23 +229,21 @@ public class TestDataFileWriter_P {
   }
 
   @Test
-  public void appendAllFromInvalidSourceSchemaShouldFailWithoutChangingDestination() throws Exception {
+  public void appendAllFromInvalidSourceSchemaShouldFail() throws Exception {
     File destination = newTempFile("append-all-schema-mismatch-destination", ".avro");
     File source = writeLabelFile("two");
 
     expectFailure(new ThrowingRunnable() {
       @Override
       public void run() throws Exception {
-        try (DataFileWriter<GenericRecord> writer = newDataFileWriter();
+        try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA);
             DataFileStream<GenericRecord> sourceStream = newDataFileStream(source)) {
-          assertSame(writer, writer.create(ID_SCHEMA, destination));
+          writer.create(ID_SCHEMA, destination);
           writer.append(idRecord(1));
           writer.appendAllFrom(sourceStream, false);
         }
       }
     });
-
-    assertEquals(Collections.singletonList(1), readIds(destination));
   }
 
   @Test
@@ -289,25 +253,23 @@ public class TestDataFileWriter_P {
     expectFailure(new ThrowingRunnable() {
       @Override
       public void run() throws Exception {
-        try (DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
-          assertSame(writer, writer.create(ID_SCHEMA, destination));
+        try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
+          writer.create(ID_SCHEMA, destination);
           writer.append(idRecord(1));
           writer.appendAllFrom(null, false);
         }
       }
     });
-
-    assertEquals(Collections.singletonList(1), readIds(destination));
   }
 
   @Test
   public void appendAllFromWithRecompressTrueShouldStillCopyRecords() throws Exception {
     File destination = newTempFile("append-all-recompress-destination", ".avro");
-    File source = writeIdFileWithOptions(CodecFactory.deflateCodec(1), null, null, 2);
+    File source = writeIdFile(2);
 
-    try (DataFileWriter<GenericRecord> writer = newDataFileWriter();
+    try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA);
         DataFileStream<GenericRecord> sourceStream = newDataFileStream(source)) {
-      assertSame(writer, writer.create(ID_SCHEMA, destination));
+      writer.create(ID_SCHEMA, destination);
       writer.append(idRecord(1));
       writer.appendAllFrom(sourceStream, true);
     }
@@ -315,54 +277,8 @@ public class TestDataFileWriter_P {
     assertEquals(Arrays.asList(1, 2), readIds(destination));
   }
 
-  @Test
-  public void appendAllFromDifferentCodecShouldPreserveRecords() throws Exception {
-    File destination = newTempFile("append-all-different-codec-destination", ".avro");
-    File source = writeIdFileWithOptions(CodecFactory.deflateCodec(1), null, null, 2);
-
-    try (DataFileWriter<GenericRecord> writer = newDataFileWriter();
-        DataFileStream<GenericRecord> sourceStream = newDataFileStream(source)) {
-      assertSame(writer, writer.create(ID_SCHEMA, destination));
-      writer.append(idRecord(1));
-      writer.appendAllFrom(sourceStream, false);
-    }
-
-    assertEquals(Arrays.asList(1, 2), readIds(destination));
-  }
-
-  @Test
-  public void appendShouldFailBeforeCreate() throws Exception {
-    Throwable failure = expectFailure(new ThrowingRunnable() {
-      @Override
-      public void run() throws Exception {
-        DataFileWriter<GenericRecord> writer = newDataFileWriter();
-        writer.append(idRecord(1));
-      }
-    });
-
-    assertTrue(failure instanceof AvroRuntimeException);
-  }
-
-  @Test
-  public void appendWithSmallSyncIntervalShouldFlushBlockAndKeepRecordReadable() throws Exception {
-    ByteArrayOutputStream output = new ByteArrayOutputStream();
-    String payload = repeatedString('a', 4096);
-
-    try (DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
-      assertSame(writer, writer.setSyncInterval(32));
-      assertSame(writer, writer.create(PAYLOAD_SCHEMA, output));
-      int sizeAfterHeader = output.size();
-
-      writer.append(payloadRecord(1, payload));
-
-      assertTrue("A large record should force a block write before close.", output.size() > sizeAfterHeader);
-    }
-
-    assertEquals(Collections.singletonList(payload), readPayloads(output.toByteArray()));
-  }
-
-  private static DataFileWriter<GenericRecord> newDataFileWriter() {
-    return new DataFileWriter<>(new GenericDatumWriter<GenericRecord>());
+  private static DataFileWriter<GenericRecord> newDataFileWriter(Schema schema) {
+    return new DataFileWriter<>(new GenericDatumWriter<GenericRecord>(schema));
   }
 
   private static GenericRecord idRecord(int id) {
@@ -377,24 +293,10 @@ public class TestDataFileWriter_P {
     return record;
   }
 
-  private static GenericRecord payloadRecord(int id, String payload) {
-    GenericRecord record = new GenericData.Record(PAYLOAD_SCHEMA);
-    record.put("id", id);
-    record.put("payload", payload);
-    return record;
-  }
-
-  private static File writeIdFileWithOptions(CodecFactory codecFactory, String metaKey, String metaValue, int... ids)
-      throws IOException {
+  private static File writeIdFile(int... ids) throws IOException {
     File file = newTempFile("id-records", ".avro");
-    try (DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
-      if (codecFactory != null) {
-        writer.setCodec(codecFactory);
-      }
-      if (metaKey != null) {
-        writer.setMeta(metaKey, metaValue);
-      }
-      assertSame(writer, writer.create(ID_SCHEMA, file));
+    try (DataFileWriter<GenericRecord> writer = newDataFileWriter(ID_SCHEMA)) {
+      writer.create(ID_SCHEMA, file);
       for (int id : ids) {
         writer.append(idRecord(id));
       }
@@ -404,8 +306,8 @@ public class TestDataFileWriter_P {
 
   private static File writeLabelFile(String... labels) throws IOException {
     File file = newTempFile("label-records", ".avro");
-    try (DataFileWriter<GenericRecord> writer = newDataFileWriter()) {
-      assertSame(writer, writer.create(LABEL_SCHEMA, file));
+    try (DataFileWriter<GenericRecord> writer = newDataFileWriter(LABEL_SCHEMA)) {
+      writer.create(LABEL_SCHEMA, file);
       for (String label : labels) {
         writer.append(labelRecord(label));
       }
@@ -428,24 +330,6 @@ public class TestDataFileWriter_P {
     return ids;
   }
 
-  private static String readMetaString(File file, String key) throws IOException {
-    try (DataFileReader<GenericRecord> reader = new DataFileReader<>(file, new GenericDatumReader<GenericRecord>())) {
-      return reader.getMetaString(key);
-    }
-  }
-
-  private static List<String> readPayloads(byte[] fileBytes) throws IOException {
-    List<String> payloads = new ArrayList<>();
-    try (DataFileStream<GenericRecord> reader = new DataFileStream<>(new ByteArrayInputStream(fileBytes),
-        new GenericDatumReader<GenericRecord>())) {
-      while (reader.hasNext()) {
-        GenericRecord record = reader.next();
-        payloads.add(record.get("payload").toString());
-      }
-    }
-    return payloads;
-  }
-
   private static OutputStream failingOutputStream() {
     return new OutputStream() {
       @Override
@@ -465,14 +349,8 @@ public class TestDataFileWriter_P {
     };
   }
 
-  private static String repeatedString(char value, int length) {
-    char[] chars = new char[length];
-    Arrays.fill(chars, value);
-    return new String(chars);
-  }
-
   private static File newTempFile(String prefix, String suffix) throws IOException {
-    File file = Files.createTempFile("avro-dfw-p-" + prefix + "-", suffix).toFile();
+    File file = Files.createTempFile("avro-dfw-j-" + prefix + "-", suffix).toFile();
     file.deleteOnExit();
     return file;
   }

@@ -37,9 +37,7 @@ import java.io.ObjectOutputStream;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -336,12 +334,9 @@ public class TestLLMFewShotCodeSchema {
     assertTrue(record.getAliases().contains(".GlobalUser"));
     assertTrue(record.getAliases().contains("external.ExternalUser"));
 
-    expectThrows(UnsupportedOperationException.class, new ThrowingRunnable() {
-      @Override
-      public void run() {
-        record.getAliases().add("forbidden");
-      }
-    });
+    Set<String> returnedAliases = record.getAliases();
+    assertTrue(returnedAliases.add("local-only"));
+    assertFalse(record.getAliases().contains("local-only"));
   }
 
   @Test
@@ -515,9 +510,9 @@ public class TestLLMFewShotCodeSchema {
     assertTrue(field.aliases().contains("full_name"));
     assertEquals("field-prop-value", field.getProp("x-field-prop"));
 
-    Schema.Field copy = new Schema.Field(field, Schema.create(Schema.Type.BYTES));
+    Schema.Field copy = new Schema.Field(field, Schema.create(Schema.Type.STRING));
     assertEquals("name", copy.name());
-    assertEquals(Schema.Type.BYTES, copy.schema().getType());
+    assertEquals(Schema.Type.STRING, copy.schema().getType());
     assertEquals("field doc", copy.doc());
     assertEquals("alice", copy.defaultVal());
     assertEquals(Schema.Field.Order.IGNORE, copy.order());
@@ -542,7 +537,10 @@ public class TestLLMFewShotCodeSchema {
     Schema nullableString = Schema.createUnion(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING));
     Schema.Field explicitNull = new Schema.Field("maybe", nullableString, null, Schema.Field.NULL_DEFAULT_VALUE);
     assertTrue(explicitNull.hasDefaultValue());
-    assertNull(explicitNull.defaultVal());
+
+    // Avro distinguishes an absent default from an explicit JSON null default.
+    // Field.defaultVal() returns JsonProperties.NULL_VALUE for the latter.
+    assertSame(JsonProperties.NULL_VALUE, explicitNull.defaultVal());
   }
 
   @Test
@@ -672,7 +670,8 @@ public class TestLLMFewShotCodeSchema {
     assertEquals(user, new Schema.Parser().parse(pretty));
 
     String withReference = user.toString(Collections.singleton(address), false);
-    assertTrue(withReference.contains("\"type\":\"example.avro.Address\""));
+    assertTrue(withReference, withReference.contains("\"type\":\"Address\"")
+        || withReference.contains("\"type\":\"example.avro.Address\""));
   }
 
   @Test
@@ -762,7 +761,8 @@ public class TestLLMFewShotCodeSchema {
     assertSame(parser, parser.setValidateDefaults(false));
     assertFalse(parser.getValidateDefaults());
     Schema schema = parser.parse(invalidDefaultRecord);
-    assertEquals("bad", schema.getField("count").defaultVal());
+    assertTrue(schema.getField("count").hasDefaultValue());
+    assertEquals("bad", schema.getField("count").defaultValue().textValue());
   }
 
   @Test
@@ -817,7 +817,8 @@ public class TestLLMFewShotCodeSchema {
 
       Schema.setValidateDefaults(false);
       Schema.Field invalidDefault = new Schema.Field("count", Schema.create(Schema.Type.INT), null, "bad");
-      assertEquals("bad", invalidDefault.defaultVal());
+      assertTrue(invalidDefault.hasDefaultValue());
+      assertEquals("bad", invalidDefault.defaultValue().textValue());
     } finally {
       Schema.setNameValidator(savedValidator);
       Schema.setValidateDefaults(savedValidateDefaults);
@@ -863,7 +864,10 @@ public class TestLLMFewShotCodeSchema {
 
     Map<String, Object> map = (Map<String, Object>) parsed;
     assertEquals("alice", map.get("name"));
-    assertEquals(Arrays.asList(1, 2), map.get("scores"));
+    List<?> scores = (List<?>) map.get("scores");
+    assertEquals(2, scores.size());
+    assertEquals(1, ((Number) scores.get(0)).intValue());
+    assertEquals(2, ((Number) scores.get(1)).intValue());
     assertEquals(Boolean.TRUE, map.get("active"));
   }
 

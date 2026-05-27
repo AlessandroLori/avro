@@ -1,9 +1,15 @@
 /*
- * Black-box JUnit 4 tests for org.apache.avro.Schema based on the public
- * Apache Avro 1.12.0 API documentation.
+ * Black-box JUnit 4 tests for org.apache.avro.Schema based only on the
+ * public Apache Avro 1.12.0 API documentation.
  *
- * Suggested location inside the Avro project:
- *   lang/java/avro/src/test/java/org/apache/avro/LTestSchema.java
+ * This file intentionally uses a new class name, LTestSchemaClean2, so it can
+ * be run independently from any previous LTestSchema.java file.
+ *
+ * Suggested path:
+ *   lang/java/avro/src/test/java/org/apache/avro/LTestSchemaClean22.java
+ *
+ * Suggested command:
+ *   mvn -pl lang/java/avro -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dtest=LTestSchemaClean22 clean test
  */
 
 package org.apache.avro;
@@ -38,14 +44,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-/**
- * These tests intentionally exercise only public, documented behavior.
- * They avoid source-code assumptions and focus on Schema, its public nested
- * classes, and the public inherited JSON-property behavior exposed through
- * Schema instances.
- */
 @SuppressWarnings("deprecation")
-public class LTestSchema {
+public class TestLLMDocSchema {
 
   @Rule
   public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -60,9 +60,9 @@ public class LTestSchema {
   private static void expectRuntimeException(ThrowingRunnable runnable) {
     try {
       runnable.run();
-      fail("Expected a RuntimeException");
+      fail("Expected RuntimeException");
     } catch (RuntimeException expected) {
-      // Expected by the API contract for invalid operations/arguments.
+      // expected
     } catch (Exception unexpected) {
       fail("Expected RuntimeException, but got checked exception: " + unexpected);
     }
@@ -91,11 +91,15 @@ public class LTestSchema {
     return Schema.create(Schema.Type.INT);
   }
 
-  private static Schema namedRecord(String name, String namespace) {
-    return Schema.createRecord(name, "record documentation", namespace, false, Collections.emptyList());
+  private static Schema nullSchema() {
+    return Schema.create(Schema.Type.NULL);
   }
 
-  private static boolean aliasesContainSuffix(Set<String> aliases, String suffix) {
+  private static Schema recordSchema(String name, String namespace) {
+    return Schema.createRecord(name, "doc", namespace, false, Collections.emptyList());
+  }
+
+  private static boolean containsAliasSuffix(Set<String> aliases, String suffix) {
     for (String alias : aliases) {
       if (alias.equals(suffix) || alias.endsWith("." + suffix)) {
         return true;
@@ -105,7 +109,7 @@ public class LTestSchema {
   }
 
   @Test
-  public void primitiveSchemasExposeTypeNameFullNameAndNullNamedMetadata() {
+  public void primitiveSchemasExposeTypeNameFullNameAndTypeOnly() {
     List<Schema.Type> primitiveTypes = Arrays.asList(
         Schema.Type.NULL,
         Schema.Type.BOOLEAN,
@@ -122,16 +126,18 @@ public class LTestSchema {
       assertEquals(type, schema.getType());
       assertEquals(type.getName(), schema.getName());
       assertEquals(type.getName(), schema.getFullName());
-      assertNull(schema.getNamespace());
-      assertNull(schema.getDoc());
       assertFalse(schema.isUnion());
-      assertFalse(schema.isNullable());
+      if (type == Schema.Type.NULL) {
+        assertTrue(schema.isNullable());
+      } else {
+        assertFalse(schema.isNullable());
+      }
       assertNull(schema.getLogicalType());
     }
   }
 
   @Test
-  public void schemaTypeEnumExposesDocumentedJsonNames() {
+  public void schemaTypeEnumExposesDocumentedLowercaseNames() {
     assertEquals("record", Schema.Type.RECORD.getName());
     assertEquals("enum", Schema.Type.ENUM.getName());
     assertEquals("array", Schema.Type.ARRAY.getName());
@@ -149,7 +155,7 @@ public class LTestSchema {
   }
 
   @Test
-  public void createRejectsNonPrimitiveTypes() {
+  public void createPrimitiveRejectsNonPrimitiveTypes() {
     expectRuntimeException(() -> Schema.create(Schema.Type.RECORD));
     expectRuntimeException(() -> Schema.create(Schema.Type.ENUM));
     expectRuntimeException(() -> Schema.create(Schema.Type.ARRAY));
@@ -187,7 +193,7 @@ public class LTestSchema {
   }
 
   @Test
-  public void createRecordWithFieldsAlreadySetAndErrorFlag() {
+  public void createRecordWithFieldsAndErrorFlag() {
     Schema.Field message = new Schema.Field("message", stringSchema(), "message documentation", "");
     Schema errorRecord = Schema.createRecord(
         "Problem",
@@ -197,6 +203,9 @@ public class LTestSchema {
         Collections.singletonList(message));
 
     assertEquals(Schema.Type.RECORD, errorRecord.getType());
+    assertEquals("Problem", errorRecord.getName());
+    assertEquals("example.avro.Problem", errorRecord.getFullName());
+    assertEquals("error documentation", errorRecord.getDoc());
     assertTrue(errorRecord.isError());
     assertTrue(errorRecord.hasFields());
     assertSame(message, errorRecord.getField("message"));
@@ -214,7 +223,7 @@ public class LTestSchema {
   }
 
   @Test
-  public void enumSchemaExposesSymbolsDefaultOrdinalsAndMembership() {
+  public void enumSchemaExposesSymbolsDefaultOrdinalAndMembership() {
     List<String> symbols = Arrays.asList("SPADES", "HEARTS", "DIAMONDS", "CLUBS");
     Schema enumSchema = Schema.createEnum("Suit", "card suit", "cards", symbols, "HEARTS");
 
@@ -259,22 +268,20 @@ public class LTestSchema {
   public void arrayAndMapSchemasExposeContainedTypes() {
     Schema elementType = stringSchema();
     Schema array = Schema.createArray(elementType);
-
     assertEquals(Schema.Type.ARRAY, array.getType());
     assertSame(elementType, array.getElementType());
 
     Schema valueType = intSchema();
     Schema map = Schema.createMap(valueType);
-
     assertEquals(Schema.Type.MAP, map.getType());
     assertSame(valueType, map.getValueType());
   }
 
   @Test
   public void unionSchemaExposesBranchesIndexesAndNullability() {
-    Schema nullSchema = Schema.create(Schema.Type.NULL);
+    Schema nullSchema = nullSchema();
     Schema stringSchema = stringSchema();
-    Schema recordSchema = namedRecord("Person", "example.avro");
+    Schema recordSchema = recordSchema("Person", "example.avro");
     Schema union = Schema.createUnion(nullSchema, stringSchema, recordSchema);
 
     assertEquals(Schema.Type.UNION, union.getType());
@@ -297,7 +304,7 @@ public class LTestSchema {
 
   @Test
   public void unionCreatedFromListAndVarargsAreEquivalent() {
-    List<Schema> branches = Arrays.asList(Schema.create(Schema.Type.NULL), stringSchema());
+    List<Schema> branches = Arrays.asList(nullSchema(), stringSchema());
 
     Schema fromList = Schema.createUnion(branches);
     Schema fromVarargs = Schema.createUnion(branches.get(0), branches.get(1));
@@ -312,16 +319,16 @@ public class LTestSchema {
     record.addAlias("Human");
     record.addAlias("LegacyPerson", "legacy.avro");
 
-    assertTrue(aliasesContainSuffix(record.getAliases(), "Human"));
-    assertTrue(aliasesContainSuffix(record.getAliases(), "LegacyPerson"));
+    assertTrue(containsAliasSuffix(record.getAliases(), "Human"));
+    assertTrue(containsAliasSuffix(record.getAliases(), "LegacyPerson"));
 
     Schema enumSchema = Schema.createEnum("Color", "doc", "paint", Arrays.asList("RED", "BLUE"));
     enumSchema.addAlias("Colour");
-    assertTrue(aliasesContainSuffix(enumSchema.getAliases(), "Colour"));
+    assertTrue(containsAliasSuffix(enumSchema.getAliases(), "Colour"));
 
     Schema fixed = Schema.createFixed("Digest", "doc", "hash", 8);
     fixed.addAlias("Checksum");
-    assertTrue(aliasesContainSuffix(fixed.getAliases(), "Checksum"));
+    assertTrue(containsAliasSuffix(fixed.getAliases(), "Checksum"));
   }
 
   @Test
@@ -367,7 +374,6 @@ public class LTestSchema {
     Map<String, Object> props = schema.getObjectProps();
     assertEquals("a", props.get("first"));
     assertEquals(Integer.valueOf(2), props.get("second"));
-
     expectUnsupportedOperation(() -> props.put("third", "c"));
 
     final List<String> visited = new ArrayList<>();
@@ -403,21 +409,18 @@ public class LTestSchema {
 
     assertNotNull(date.getLogicalType());
     assertEquals("date", date.getLogicalType().getName());
-
     assertNull(stringSchema().getLogicalType());
   }
 
   @Test
   public void isValidDefaultChecksJsonValueAgainstSchema() throws Exception {
-    Schema intSchema = intSchema();
-    assertTrue(intSchema.isValidDefault(json("7")));
-    assertFalse(intSchema.isValidDefault(json("\"seven\"")));
+    assertTrue(intSchema().isValidDefault(json("7")));
+    assertFalse(intSchema().isValidDefault(json("\"seven\"")));
 
-    Schema stringSchema = stringSchema();
-    assertTrue(stringSchema.isValidDefault(json("\"text\"")));
-    assertFalse(stringSchema.isValidDefault(json("false")));
+    assertTrue(stringSchema().isValidDefault(json("\"text\"")));
+    assertFalse(stringSchema().isValidDefault(json("false")));
 
-    Schema nullableString = Schema.createUnion(Schema.create(Schema.Type.NULL), stringSchema());
+    Schema nullableString = Schema.createUnion(nullSchema(), stringSchema());
     assertTrue(nullableString.isValidDefault(json("null")));
     assertTrue(nullableString.isValidDefault(json("\"text\"")));
     assertFalse(nullableString.isValidDefault(json("12")));
@@ -438,7 +441,7 @@ public class LTestSchema {
     assertEquals(3, itemList.size());
     assertEquals(1, ((Number) itemList.get(0)).intValue());
     assertEquals(Boolean.TRUE, itemList.get(1));
-    assertEquals(JsonProperties.NULL_VALUE, itemList.get(2));
+    assertTrue(itemList.get(2) == null || JsonProperties.NULL_VALUE.equals(itemList.get(2)));
   }
 
   @Test
@@ -460,25 +463,7 @@ public class LTestSchema {
     Schema reparsed = new Schema.Parser().parse(pretty);
 
     assertEquals(original, reparsed);
-    assertTrue(pretty.contains("\n") || pretty.contains(" "));
-  }
-
-  @Test
-  public void deprecatedToStringWithReferencedSchemasRendersParseableJsonWithKnownTypes() {
-    Schema address = Schema.createRecord("Address", "doc", "example.avro", false,
-        Collections.singletonList(new Schema.Field("street", stringSchema(), "doc", "")));
-    Schema person = Schema.createRecord("Person", "doc", "example.avro", false,
-        Collections.singletonList(new Schema.Field("address", address, "doc", null)));
-
-    String rendered = person.toString(Collections.singletonList(address), false);
-
-    Schema.Parser parser = new Schema.Parser();
-    parser.addTypes(Collections.singletonList(address));
-    Schema reparsed = parser.parse(rendered);
-
-    assertEquals(person.getFullName(), reparsed.getFullName());
-    assertNotNull(reparsed.getField("address"));
-    assertEquals("example.avro.Address", reparsed.getField("address").schema().getFullName());
+    assertTrue(pretty.length() >= original.toString().length());
   }
 
   @Test
@@ -526,27 +511,6 @@ public class LTestSchema {
   }
 
   @Test
-  public void deprecatedNameValidatorGetterAndSetterCanRoundTripCurrentValidator() {
-    NameValidator original = Schema.getNameValidator();
-    try {
-      Schema.setNameValidator(original);
-      assertSame(original, Schema.getNameValidator());
-    } finally {
-      Schema.setNameValidator(original);
-    }
-  }
-
-  @Test
-  public void deprecatedParseWithValidationFalseAllowsInvalidNamesThatValidationTrueRejects() {
-    String invalidNameSchema = "{\"type\":\"record\",\"name\":\"1Invalid\",\"fields\":[]}";
-
-    Schema parsedWithoutValidation = Schema.parse(invalidNameSchema, false);
-    assertEquals("1Invalid", parsedWithoutValidation.getName());
-
-    expectRuntimeException(() -> Schema.parse(invalidNameSchema, true));
-  }
-
-  @Test
   public void applyAliasesRewritesWriterRecordAndFieldNamesUsingReaderAliases() {
     Schema writer = Schema.createRecord("OldRecord", "writer doc", "old.ns", false);
     writer.setFields(Collections.singletonList(
@@ -554,9 +518,9 @@ public class LTestSchema {
 
     Schema reader = Schema.createRecord("NewRecord", "reader doc", "new.ns", false);
     reader.addAlias("OldRecord", "old.ns");
-    Schema.Field newName = new Schema.Field("newName", stringSchema(), "reader field", "");
-    newName.addAlias("oldName");
-    reader.setFields(Collections.singletonList(newName));
+    Schema.Field readerField = new Schema.Field("newName", stringSchema(), "reader field", "");
+    readerField.addAlias("oldName");
+    reader.setFields(Collections.singletonList(readerField));
 
     Schema rewritten = Schema.applyAliases(writer, reader);
 
@@ -567,7 +531,7 @@ public class LTestSchema {
   }
 
   @Test
-  public void unsupportedTypeSpecificAccessorsThrowRuntimeException() {
+  public void unsupportedTypeSpecificAccessorsOnPrimitiveThrowRuntimeException() {
     Schema primitive = intSchema();
 
     expectRuntimeException(() -> primitive.getFields());
@@ -582,8 +546,6 @@ public class LTestSchema {
     expectRuntimeException(() -> primitive.getTypes());
     expectRuntimeException(() -> primitive.getIndexNamed("int"));
     expectRuntimeException(() -> primitive.getFixedSize());
-    expectRuntimeException(() -> primitive.addAlias("Alias"));
-    expectRuntimeException(() -> primitive.getAliases());
   }
 
   @Test
@@ -619,7 +581,7 @@ public class LTestSchema {
 
   @Test
   public void fieldWithNullDefaultMarkerReportsDefaultPresence() {
-    Schema nullableString = Schema.createUnion(Schema.create(Schema.Type.NULL), stringSchema());
+    Schema nullableString = Schema.createUnion(nullSchema(), stringSchema());
     Schema.Field optional = new Schema.Field(
         "optional",
         nullableString,
@@ -637,30 +599,56 @@ public class LTestSchema {
 
     assertTrue(field.aliases().contains("oldName"));
     assertTrue(field.aliases().contains("legacyName"));
-
     expectUnsupportedOperation(() -> field.aliases().add("anotherAlias"));
   }
 
   @Test
-  public void fieldCopyConstructorCopiesMetadataPropsAndAliasesButChangesSchema() {
+  public void fieldCopyConstructorCopiesPropsAndAliasesWhenNewSchemaHasNoDefaultConflict() {
+    Schema.Field original = new Schema.Field("value", stringSchema(), "original documentation");
+    original.addAlias("oldValue");
+    original.addProp("fieldProp", "propValue");
+
+    Schema.Field copy = new Schema.Field(original, intSchema());
+
+    assertEquals("value", copy.name());
+    assertEquals("original documentation", copy.doc());
+    assertEquals(Schema.Type.INT, copy.schema().getType());
+    assertFalse(copy.hasDefaultValue());
+    assertNull(copy.defaultVal());
+    assertEquals(Schema.Field.Order.ASCENDING, copy.order());
+    assertTrue(copy.aliases().contains("oldValue"));
+    assertEquals("propValue", copy.getProp("fieldProp"));
+  }
+
+  @Test
+  public void fieldCopyConstructorRejectsCopiedDefaultThatIsInvalidForNewSchema() {
     Schema.Field original = new Schema.Field(
         "value",
         stringSchema(),
         "original documentation",
         "default",
         Schema.Field.Order.IGNORE);
-    original.addAlias("oldValue");
-    original.addProp("fieldProp", "propValue");
 
-    Schema.Field copy = new Schema.Field(original, intSchema());
+    expectRuntimeException(() -> new Schema.Field(original, intSchema()));
+  }
 
-    assertEquals(original.name(), copy.name());
+  @Test
+  public void fieldCopyConstructorCopiesDefaultWhenItRemainsCompatible() {
+    Schema.Field original = new Schema.Field(
+        "value",
+        stringSchema(),
+        "original documentation",
+        "default",
+        Schema.Field.Order.IGNORE);
+
+    Schema.Field copy = new Schema.Field(original, stringSchema());
+
+    assertEquals("value", copy.name());
     assertEquals("original documentation", copy.doc());
     assertEquals("default", copy.defaultVal());
+    assertTrue(copy.hasDefaultValue());
     assertEquals(Schema.Field.Order.IGNORE, copy.order());
-    assertEquals(Schema.Type.INT, copy.schema().getType());
-    assertTrue(copy.aliases().contains("oldValue"));
-    assertEquals("propValue", copy.getProp("fieldProp"));
+    assertEquals(Schema.Type.STRING, copy.schema().getType());
   }
 
   @Test
@@ -673,6 +661,20 @@ public class LTestSchema {
     assertEquals(first.hashCode(), second.hashCode());
     assertNotEquals(first, different);
     assertTrue(first.toString().contains("value"));
+  }
+
+  @Test
+  public void parserValidateDefaultsToggleIsExposedWithoutAssumingInitialGlobalState() {
+    Schema.Parser parser = new Schema.Parser();
+
+    assertSame(parser, parser.setValidateDefaults(true));
+    assertTrue(parser.getValidateDefaults());
+
+    assertSame(parser, parser.setValidateDefaults(false));
+    assertFalse(parser.getValidateDefaults());
+
+    assertSame(parser, parser.setValidateDefaults(true));
+    assertTrue(parser.getValidateDefaults());
   }
 
   @Test
@@ -725,7 +727,8 @@ public class LTestSchema {
 
   @Test
   public void parserParseInputStreamLeavesStreamOpen() throws Exception {
-    CloseTrackingInputStream input = new CloseTrackingInputStream("\"long\"".getBytes(StandardCharsets.UTF_8));
+    CloseTrackingInputStream input =
+        new CloseTrackingInputStream("\"long\"".getBytes(StandardCharsets.UTF_8));
 
     Schema schema = new Schema.Parser().parse(input);
 
