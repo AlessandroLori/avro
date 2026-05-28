@@ -58,6 +58,9 @@
     <!-- Default: le esecuzioni extra di Surefire restano attive.
          Nei profili generated-test vengono disattivate. -->
     <generated.tests.skip.extra.surefire>false</generated.tests.skip.extra.surefire>
+
+    <!-- Main Avro classes must stay Java 11 bytecode: EvoSuite 1.2.0 runs on JDK 11. -->
+    <maven.compiler.release>11</maven.compiler.release>
   </properties>
 
   <build>
@@ -102,8 +105,8 @@
             <testExclude>**/*_ESTest.java</testExclude>
             <testExclude>**/*_ESTest_scaffolding.java</testExclude>
           </testExcludes>
-            <source>12</source>
-            <target>12</target>
+          <release>${maven.compiler.release}</release>
+          <testRelease>${maven.compiler.release}</testRelease>
         </configuration>
       </plugin>
 
@@ -275,6 +278,14 @@
     </dependency>
 
     <dependency>
+      <groupId>org.jacoco</groupId>
+      <artifactId>org.jacoco.agent</artifactId>
+      <version>${jacoco.version}</version>
+      <classifier>runtime</classifier>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
     </dependency>
@@ -339,6 +350,8 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
             <configuration combine.self="override">
+              <release>${maven.compiler.release}</release>
+              <testRelease>${maven.compiler.release}</testRelease>
               <testIncludes>
                 <testInclude>**/*_ESTest.java</testInclude>
                 <testInclude>**/*_ESTest_scaffolding.java</testInclude>
@@ -382,6 +395,10 @@
                 <exclude>**/randoop/**</exclude>
                 <exclude>**/*Randoop*.java</exclude>
               </excludes>
+
+              <systemPropertyVariables>
+                <jacoco-agent.destfile>${project.build.directory}/jacoco.exec</jacoco-agent.destfile>
+              </systemPropertyVariables>
 
               <properties>
                 <property>
@@ -455,6 +472,7 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
             <configuration combine.self="override">
+              <release>${maven.compiler.release}</release>
               <testRelease>${maven.compiler.testRelease}</testRelease>
               <testIncludes>
                 <testInclude>**/randoop/**/*RegressionTest?.java</testInclude>
