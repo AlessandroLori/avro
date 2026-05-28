@@ -11,6 +11,7 @@ on:
       - 'lang/java/pom.xml'
       - 'pom.xml'
       - '.mvn/**'
+      - 'tools/evosuite/**'
       - '.github/workflows/java-ci.yml'
 
   pull_request:
@@ -23,6 +24,7 @@ on:
       - 'lang/java/pom.xml'
       - 'pom.xml'
       - '.mvn/**'
+      - 'tools/evosuite/**'
       - '.github/workflows/java-ci.yml'
 
   workflow_dispatch:
@@ -142,6 +144,26 @@ jobs:
             21
           cache: maven
 
+      - name: Install EvoSuite runtime 1.2.0
+        run: |
+          set -euo pipefail
+
+          EVO_RUNTIME="tools/evosuite/evosuite-standalone-runtime-1.2.0.jar"
+
+          if [ ! -f "$EVO_RUNTIME" ]; then
+            echo "Missing $EVO_RUNTIME"
+            echo "You must commit tools/evosuite/evosuite-standalone-runtime-1.2.0.jar"
+            echo "The EvoSuite job cannot use 1.0.6 because its shaded ASM cannot instrument the current bytecode."
+            exit 1
+          fi
+
+          mvn -B install:install-file \
+            -Dfile="$EVO_RUNTIME" \
+            -DgroupId=org.evosuite \
+            -DartifactId=evosuite-standalone-runtime \
+            -Dversion=1.2.0 \
+            -Dpackaging=jar
+
       - name: Disable C1-C4 test variants
         run: |
           set -euo pipefail
@@ -215,13 +237,15 @@ jobs:
       - name: Run Evosuite Tests
         run: |
           mvn -U -B -pl lang/java/avro -Pevosuite-only \
+            -Devosuite.version=1.2.0 \
             -Dspotless.check.skip=true \
             -Dcheckstyle.skip=true \
             -Drat.skip=true \
             -Dinvoker.skip=true \
             -Dmaven.compiler.testRelease=17 \
-            '-Dtest=Schema_ESTest,DataFileWriter_ESTest' \
-            clean test jacoco:report
+            -Djacoco-agent.destfile="$PWD/lang/java/avro/target/jacoco.exec" \
+            '-Dtest=org.apache.avro.Schema_ESTest,org.apache.avro.file.DataFileWriter_ESTest' \
+            clean test-compile jacoco:instrument surefire:test jacoco:restore-instrumented-classes jacoco:report
 
       - name: Upload Evosuite Surefire reports
         if: always()
