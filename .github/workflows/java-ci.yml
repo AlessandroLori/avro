@@ -157,12 +157,21 @@ jobs:
             exit 1
           fi
 
-          mvn -B install:install-file \
+          cat > /tmp/evosuite-standalone-runtime-1.2.0.pom <<'EOF'
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>org.evosuite</groupId>
+            <artifactId>evosuite-standalone-runtime</artifactId>
+            <version>1.2.0</version>
+            <packaging>jar</packaging>
+          </project>
+          EOF
+
+          mvn -B org.apache.maven.plugins:maven-install-plugin:3.1.3:install-file \
             -Dfile="$EVO_RUNTIME" \
-            -DgroupId=org.evosuite \
-            -DartifactId=evosuite-standalone-runtime \
-            -Dversion=1.2.0 \
-            -Dpackaging=jar
+            -DpomFile=/tmp/evosuite-standalone-runtime-1.2.0.pom
 
       - name: Disable C1-C4 test variants
         run: |
