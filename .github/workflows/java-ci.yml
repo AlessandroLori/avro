@@ -273,6 +273,12 @@ jobs:
 
       - name: Run Schema EvoSuite Tests
         run: |
+          set -euo pipefail
+
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+
+          java -version
           rm -f "$AVRO_MODULE/target/jacoco.exec"
 
           mvn -U -B -pl "$AVRO_MODULE" \
@@ -284,6 +290,7 @@ jobs:
             -Dinvoker.skip=true \
             -Dmaven.compiler.testRelease=17 \
             -Djacoco-agent.destfile="$PWD/$AVRO_MODULE/target/jacoco.exec" \
+            -DsurefireArgLine="-noverify" \
             -Dtest="org.apache.avro.Schema_ESTest" \
             clean test-compile jacoco:instrument surefire:test jacoco:restore-instrumented-classes jacoco:report
 
@@ -295,6 +302,12 @@ jobs:
 
       - name: Run DataFileWriter EvoSuite Tests
         run: |
+          set -euo pipefail
+
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+
+          java -version
           rm -f "$AVRO_MODULE/target/jacoco.exec"
 
           mvn -U -B -pl "$AVRO_MODULE" \
@@ -306,6 +319,7 @@ jobs:
             -Dinvoker.skip=true \
             -Dmaven.compiler.testRelease=17 \
             -Djacoco-agent.destfile="$PWD/$AVRO_MODULE/target/jacoco.exec" \
+            -DsurefireArgLine="-noverify" \
             -Dtest="org.apache.avro.file.DataFileWriter_ESTest" \
             clean test-compile jacoco:instrument surefire:test jacoco:restore-instrumented-classes jacoco:report
 
