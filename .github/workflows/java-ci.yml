@@ -132,22 +132,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Set up JDK 8, 11, 17 and 21
+      - name: Set up JDK 11, 17 and 21
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: |
-            8
             11
             17
             21
           cache: maven
-
-      - name: Check JDK 8 tools.jar
-        run: |
-          set -euo pipefail
-          echo "JAVA_HOME_8_X64=$JAVA_HOME_8_X64"
-          ls -l "$JAVA_HOME_8_X64/lib/tools.jar"
 
       - name: Disable C1-C4 test variants
         run: |
@@ -196,15 +189,17 @@ jobs:
             \) \
             | sort
 
+      - name: Check jdk.attach availability
+        run: |
+          set -euo pipefail
+          java --add-modules=jdk.attach -XshowSettings:properties -version 2>&1 | grep -E 'java.version|java.home' || true
+
       - name: Run Evosuite Tests
         run: |
           set -euo pipefail
 
-          EVO_TOOLS_JAR="$JAVA_HOME_8_X64/lib/tools.jar"
-          test -f "$EVO_TOOLS_JAR"
-
-          export JAVA_TOOL_OPTIONS="-Dtools_jar_location=$EVO_TOOLS_JAR ${JAVA_TOOL_OPTIONS:-}"
-          export MAVEN_OPTS="-Dtools_jar_location=$EVO_TOOLS_JAR ${MAVEN_OPTS:-}"
+          export JAVA_TOOL_OPTIONS="--add-modules=jdk.attach -Djdk.attach.allowAttachSelf=true ${JAVA_TOOL_OPTIONS:-}"
+          export MAVEN_OPTS="--add-modules=jdk.attach -Djdk.attach.allowAttachSelf=true ${MAVEN_OPTS:-}"
 
           echo "JAVA_TOOL_OPTIONS=$JAVA_TOOL_OPTIONS"
           echo "MAVEN_OPTS=$MAVEN_OPTS"
@@ -214,8 +209,8 @@ jobs:
             -Dcheckstyle.skip=true \
             -Drat.skip=true \
             -Dinvoker.skip=true \
-            -Dtools_jar_location="$EVO_TOOLS_JAR" \
-            -DsurefireArgLine="-Dtools_jar_location=$EVO_TOOLS_JAR" \
+            -Dmaven.compiler.testRelease=17 \
+            -DsurefireArgLine="--add-modules=jdk.attach -Djdk.attach.allowAttachSelf=true" \
             '-Dtest=Schema_ESTest,DataFileWriter_ESTest' \
             clean test jacoco:report
 
