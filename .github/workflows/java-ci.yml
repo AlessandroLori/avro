@@ -178,6 +178,29 @@ jobs:
           echo "Disabled C-variant files:"
           find "$DISABLED_DIR" -type f -name '*.java' | sort || true
 
+      - name: Normalize Evosuite runtime configuration
+        run: |
+          set -euo pipefail
+
+          for f in \
+            "$AVRO_TEST_ROOT/Schema_ESTest.java" \
+            "$AVRO_TEST_ROOT/file/DataFileWriter_ESTest.java"
+          do
+            if [ -f "$f" ]; then
+              perl -0pi -e 's/separateClassLoader\s*=\s*false/separateClassLoader = true/g; s/useVFS\s*=\s*false/useVFS = true/g; s/useVNET\s*=\s*false/useVNET = true/g' "$f"
+              grep -n "EvoRunnerParameters" "$f"
+            fi
+          done
+
+          for f in \
+            "$AVRO_TEST_ROOT/Schema_ESTest_scaffolding.java" \
+            "$AVRO_TEST_ROOT/file/DataFileWriter_ESTest_scaffolding.java"
+          do
+            if [ -f "$f" ]; then
+              perl -0pi -e 's/RuntimeSettings\.useVFS\s*=\s*false/RuntimeSettings.useVFS = true/g; s/RuntimeSettings\.useVNET\s*=\s*false/RuntimeSettings.useVNET = true/g' "$f"
+            fi
+          done
+
       - name: List Evosuite test sources
         run: |
           find "$AVRO_TEST_ROOT" \
@@ -189,28 +212,14 @@ jobs:
             \) \
             | sort
 
-      - name: Check jdk.attach availability
-        run: |
-          set -euo pipefail
-          java --add-modules=jdk.attach -XshowSettings:properties -version 2>&1 | grep -E 'java.version|java.home' || true
-
       - name: Run Evosuite Tests
         run: |
-          set -euo pipefail
-
-          export JAVA_TOOL_OPTIONS="--add-modules=jdk.attach -Djdk.attach.allowAttachSelf=true ${JAVA_TOOL_OPTIONS:-}"
-          export MAVEN_OPTS="--add-modules=jdk.attach -Djdk.attach.allowAttachSelf=true ${MAVEN_OPTS:-}"
-
-          echo "JAVA_TOOL_OPTIONS=$JAVA_TOOL_OPTIONS"
-          echo "MAVEN_OPTS=$MAVEN_OPTS"
-
           mvn -U -B -pl lang/java/avro -Pevosuite-only \
             -Dspotless.check.skip=true \
             -Dcheckstyle.skip=true \
             -Drat.skip=true \
             -Dinvoker.skip=true \
             -Dmaven.compiler.testRelease=17 \
-            -DsurefireArgLine="--add-modules=jdk.attach -Djdk.attach.allowAttachSelf=true" \
             '-Dtest=Schema_ESTest,DataFileWriter_ESTest' \
             clean test jacoco:report
 
