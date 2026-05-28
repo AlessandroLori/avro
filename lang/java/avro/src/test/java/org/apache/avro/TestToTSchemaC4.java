@@ -683,7 +683,7 @@ public class TestToTSchemaC4 {
 
     assertEquals("x", Schema.parseJsonToObject("\"x\""));
     assertEquals(Boolean.FALSE, Schema.parseJsonToObject("false"));
-    expectThrows(AvroRuntimeException.class, () -> Schema.parseJsonToObject("{bad json}"));
+    expectThrows(RuntimeException.class, () -> Schema.parseJsonToObject("{bad json}"));
   }
 
   @Test

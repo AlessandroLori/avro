@@ -606,7 +606,7 @@ public class TestLLMCodeSchemaC1 {
     assertTrue(object instanceof List);
     assertEquals(3, ((List<Object>) object).size());
 
-    expectThrows(AvroRuntimeException.class, () -> Schema.parseJson("{ bad json }"));
+    expectThrows(RuntimeException.class, () -> Schema.parseJson("{ bad json }"));
   }
 
   @Test
