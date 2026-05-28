@@ -42,6 +42,7 @@ defaults:
 
 env:
   AVRO_TEST_ROOT: lang/java/avro/src/test/java/org/apache/avro
+  AVRO_MODULE: lang/java/avro
 
 jobs:
   manual-and-llm-tests:
@@ -109,7 +110,7 @@ jobs:
 
       - name: Run Manual and LLM Tests
         run: |
-          mvn -U -B -pl lang/java/avro \
+          mvn -U -B -pl "$AVRO_MODULE" \
             -Dspotless.check.skip=true \
             -Dcheckstyle.skip=true \
             -Drat.skip=true \
@@ -208,7 +209,35 @@ jobs:
           echo "Disabled C-variant files:"
           find "$DISABLED_DIR" -type f -name '*.java' | sort || true
 
-      - name: Normalize Evosuite runtime configuration
+      - name: Disable other EvoSuite tests
+        run: |
+          set -euo pipefail
+
+          KEEP_1="$AVRO_TEST_ROOT/Schema_ESTest.java"
+          KEEP_2="$AVRO_TEST_ROOT/Schema_ESTest_scaffolding.java"
+          KEEP_3="$AVRO_TEST_ROOT/file/DataFileWriter_ESTest.java"
+          KEEP_4="$AVRO_TEST_ROOT/file/DataFileWriter_ESTest_scaffolding.java"
+
+          DISABLED_DIR=".ci-disabled/other-evosuite-tests"
+          mkdir -p "$DISABLED_DIR"
+
+          find "$AVRO_TEST_ROOT" -type f \( \
+            -name '*_ESTest.java' -o \
+            -name '*_ESTest_scaffolding.java' \
+          \) -print0 | while IFS= read -r -d '' f; do
+            case "$f" in
+              "$KEEP_1"|"$KEEP_2"|"$KEEP_3"|"$KEEP_4")
+                echo "KEEP $f"
+                ;;
+              *)
+                mkdir -p "$DISABLED_DIR/$(dirname "$f")"
+                echo "DISABLE $f"
+                mv "$f" "$DISABLED_DIR/$f"
+                ;;
+            esac
+          done
+
+      - name: Normalize EvoSuite runtime configuration
         run: |
           set -euo pipefail
 
@@ -217,7 +246,7 @@ jobs:
             "$AVRO_TEST_ROOT/file/DataFileWriter_ESTest.java"
           do
             if [ -f "$f" ]; then
-              perl -0pi -e 's/separateClassLoader\s*=\s*false/separateClassLoader = true/g; s/useVFS\s*=\s*false/useVFS = true/g; s/useVNET\s*=\s*false/useVNET = true/g' "$f"
+              perl -0pi -e 's/separateClassLoader\s*=\s*false/separateClassLoader = true/g; s/separateClassLoader\s*=\s*true/separateClassLoader = true/g; s/useVFS\s*=\s*false/useVFS = true/g; s/useVNET\s*=\s*false/useVNET = true/g' "$f"
               grep -n "EvoRunnerParameters" "$f"
             fi
           done
@@ -231,7 +260,7 @@ jobs:
             fi
           done
 
-      - name: List Evosuite test sources
+      - name: List EvoSuite test sources
         run: |
           find "$AVRO_TEST_ROOT" \
             -type f \( \
@@ -242,48 +271,56 @@ jobs:
             \) \
             | sort
 
-      - name: Run Schema Evosuite Tests
+      - name: Run Schema EvoSuite Tests
         run: |
-          mvn -U -B -pl lang/java/avro -Pevosuite-only \
+          rm -f "$AVRO_MODULE/target/jacoco.exec"
+
+          mvn -U -B -pl "$AVRO_MODULE" \
+            -Pevosuite-only \
             -Devosuite.version=1.2.0 \
             -Dspotless.check.skip=true \
             -Dcheckstyle.skip=true \
             -Drat.skip=true \
             -Dinvoker.skip=true \
             -Dmaven.compiler.testRelease=17 \
-            '-Dtest=org.apache.avro.Schema_ESTest' \
-            clean test
+            -Djacoco-agent.destfile="$PWD/$AVRO_MODULE/target/jacoco.exec" \
+            -Dtest="org.apache.avro.Schema_ESTest" \
+            clean test-compile jacoco:instrument surefire:test jacoco:restore-instrumented-classes jacoco:report
 
-      - name: Archive Schema Evosuite reports
+      - name: Archive Schema EvoSuite reports
         if: always()
         run: |
-          mkdir -p lang/java/avro/target/ci-surefire-reports/evosuite-schema
-          cp -R lang/java/avro/target/surefire-reports/. lang/java/avro/target/ci-surefire-reports/evosuite-schema/ 2>/dev/null || true
+          mkdir -p "$AVRO_MODULE/target/ci-surefire-reports/evosuite-schema"
+          cp -R "$AVRO_MODULE/target/surefire-reports/." "$AVRO_MODULE/target/ci-surefire-reports/evosuite-schema/" 2>/dev/null || true
 
-      - name: Run DataFileWriter Evosuite Tests
+      - name: Run DataFileWriter EvoSuite Tests
         run: |
-          mvn -U -B -pl lang/java/avro -Pevosuite-only \
+          rm -f "$AVRO_MODULE/target/jacoco.exec"
+
+          mvn -U -B -pl "$AVRO_MODULE" \
+            -Pevosuite-only \
             -Devosuite.version=1.2.0 \
             -Dspotless.check.skip=true \
             -Dcheckstyle.skip=true \
             -Drat.skip=true \
             -Dinvoker.skip=true \
             -Dmaven.compiler.testRelease=17 \
-            '-Dtest=org.apache.avro.file.DataFileWriter_ESTest' \
-            clean test
+            -Djacoco-agent.destfile="$PWD/$AVRO_MODULE/target/jacoco.exec" \
+            -Dtest="org.apache.avro.file.DataFileWriter_ESTest" \
+            clean test-compile jacoco:instrument surefire:test jacoco:restore-instrumented-classes jacoco:report
 
-      - name: Archive DataFileWriter Evosuite reports
+      - name: Archive DataFileWriter EvoSuite reports
         if: always()
         run: |
-          mkdir -p lang/java/avro/target/ci-surefire-reports/evosuite-datafilewriter
-          cp -R lang/java/avro/target/surefire-reports/. lang/java/avro/target/ci-surefire-reports/evosuite-datafilewriter/ 2>/dev/null || true
+          mkdir -p "$AVRO_MODULE/target/ci-surefire-reports/evosuite-datafilewriter"
+          cp -R "$AVRO_MODULE/target/surefire-reports/." "$AVRO_MODULE/target/ci-surefire-reports/evosuite-datafilewriter/" 2>/dev/null || true
 
-      - name: Print Evosuite report summaries on failure
+      - name: Print EvoSuite report summaries on failure
         if: failure()
         run: |
-          find lang/java/avro/target -path '*surefire-reports/*.txt' -type f -print -exec sed -n '1,220p' {} \; || true
+          find "$AVRO_MODULE/target" -path '*surefire-reports/*.txt' -type f -print -exec sed -n '1,260p' {} \; || true
 
-      - name: Upload Evosuite Surefire reports
+      - name: Upload EvoSuite Surefire reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -355,7 +392,7 @@ jobs:
 
       - name: Run Randoop Tests
         run: |
-          mvn -U -B -pl lang/java/avro -Prandoop-only \
+          mvn -U -B -pl "$AVRO_MODULE" -Prandoop-only \
             -Dspotless.check.skip=true \
             -Dcheckstyle.skip=true \
             -Drat.skip=true \
