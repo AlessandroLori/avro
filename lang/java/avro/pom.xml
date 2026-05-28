@@ -102,6 +102,8 @@
             <testExclude>**/*_ESTest.java</testExclude>
             <testExclude>**/*_ESTest_scaffolding.java</testExclude>
           </testExcludes>
+            <source>12</source>
+            <target>12</target>
         </configuration>
       </plugin>
 
@@ -443,6 +445,7 @@
       <properties>
         <surefireArgLine></surefireArgLine>
         <generated.tests.skip.extra.surefire>true</generated.tests.skip.extra.surefire>
+        <maven.compiler.testRelease>17</maven.compiler.testRelease>
       </properties>
 
       <build>
@@ -452,6 +455,7 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
             <configuration combine.self="override">
+              <testRelease>${maven.compiler.testRelease}</testRelease>
               <testIncludes>
                 <testInclude>**/randoop/**/*RegressionTest?.java</testInclude>
                 <testInclude>**/randoop/**/*RegressionTest??.java</testInclude>
