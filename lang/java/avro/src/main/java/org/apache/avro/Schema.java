@@ -110,7 +110,7 @@ public abstract class Schema extends JsonProperties implements Serializable {
     private String schemaString;
 
     private Object readResolve() {
-      return new Parser().parse(schemaString);
+      return new Schema.Parser().parse(schemaString);
     }
   }
 
@@ -511,7 +511,7 @@ public abstract class Schema extends JsonProperties implements Serializable {
   /** Returns true if this record is a union type containing null. */
   public boolean isNullable() {
     if (!isUnion()) {
-      return getType().equals(Type.NULL);
+      return getType().equals(Schema.Type.NULL);
     }
 
     for (Schema schema : getTypes()) {
@@ -999,7 +999,7 @@ public abstract class Schema extends JsonProperties implements Serializable {
         return false;
       if (!propsEqual(that))
         return false;
-      Set<SeenPair> seen = SEEN_EQUALS.get();
+      Set<Schema.SeenPair> seen = SEEN_EQUALS.get();
       SeenPair here = new SeenPair(this, o);
       if (seen.contains(here))
         return true; // prevent stack overflow
