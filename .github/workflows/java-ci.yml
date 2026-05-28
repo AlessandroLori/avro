@@ -152,8 +152,7 @@ jobs:
 
           if [ ! -f "$EVO_RUNTIME" ]; then
             echo "Missing $EVO_RUNTIME"
-            echo "You must commit tools/evosuite/evosuite-standalone-runtime-1.2.0.jar"
-            echo "The EvoSuite job cannot use 1.0.6 because its shaded ASM cannot instrument the current bytecode."
+            echo "Commit this file: tools/evosuite/evosuite-standalone-runtime-1.2.0.jar"
             exit 1
           fi
 
@@ -243,7 +242,7 @@ jobs:
             \) \
             | sort
 
-      - name: Run Evosuite Tests
+      - name: Run Schema Evosuite Tests
         run: |
           mvn -U -B -pl lang/java/avro -Pevosuite-only \
             -Devosuite.version=1.2.0 \
@@ -252,16 +251,46 @@ jobs:
             -Drat.skip=true \
             -Dinvoker.skip=true \
             -Dmaven.compiler.testRelease=17 \
-            -Djacoco-agent.destfile="$PWD/lang/java/avro/target/jacoco.exec" \
-            '-Dtest=org.apache.avro.Schema_ESTest,org.apache.avro.file.DataFileWriter_ESTest' \
-            clean test-compile jacoco:instrument surefire:test jacoco:restore-instrumented-classes jacoco:report
+            '-Dtest=org.apache.avro.Schema_ESTest' \
+            clean test
+
+      - name: Archive Schema Evosuite reports
+        if: always()
+        run: |
+          mkdir -p lang/java/avro/target/ci-surefire-reports/evosuite-schema
+          cp -R lang/java/avro/target/surefire-reports/. lang/java/avro/target/ci-surefire-reports/evosuite-schema/ 2>/dev/null || true
+
+      - name: Run DataFileWriter Evosuite Tests
+        run: |
+          mvn -U -B -pl lang/java/avro -Pevosuite-only \
+            -Devosuite.version=1.2.0 \
+            -Dspotless.check.skip=true \
+            -Dcheckstyle.skip=true \
+            -Drat.skip=true \
+            -Dinvoker.skip=true \
+            -Dmaven.compiler.testRelease=17 \
+            '-Dtest=org.apache.avro.file.DataFileWriter_ESTest' \
+            clean test
+
+      - name: Archive DataFileWriter Evosuite reports
+        if: always()
+        run: |
+          mkdir -p lang/java/avro/target/ci-surefire-reports/evosuite-datafilewriter
+          cp -R lang/java/avro/target/surefire-reports/. lang/java/avro/target/ci-surefire-reports/evosuite-datafilewriter/ 2>/dev/null || true
+
+      - name: Print Evosuite report summaries on failure
+        if: failure()
+        run: |
+          find lang/java/avro/target -path '*surefire-reports/*.txt' -type f -print -exec sed -n '1,220p' {} \; || true
 
       - name: Upload Evosuite Surefire reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: surefire-evosuite-tests
-          path: lang/java/avro/target/surefire-reports/**
+          path: |
+            lang/java/avro/target/surefire-reports/**
+            lang/java/avro/target/ci-surefire-reports/**
           if-no-files-found: ignore
 
   randoop-tests:
