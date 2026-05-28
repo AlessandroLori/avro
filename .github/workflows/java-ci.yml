@@ -203,6 +203,12 @@ jobs:
           EVO_TOOLS_JAR="$JAVA_HOME_8_X64/lib/tools.jar"
           test -f "$EVO_TOOLS_JAR"
 
+          export JAVA_TOOL_OPTIONS="-Dtools_jar_location=$EVO_TOOLS_JAR ${JAVA_TOOL_OPTIONS:-}"
+          export MAVEN_OPTS="-Dtools_jar_location=$EVO_TOOLS_JAR ${MAVEN_OPTS:-}"
+
+          echo "JAVA_TOOL_OPTIONS=$JAVA_TOOL_OPTIONS"
+          echo "MAVEN_OPTS=$MAVEN_OPTS"
+
           mvn -U -B -pl lang/java/avro -Pevosuite-only \
             -Dspotless.check.skip=true \
             -Dcheckstyle.skip=true \
