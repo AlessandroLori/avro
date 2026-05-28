@@ -67,7 +67,15 @@ jobs:
           DISABLED_DIR=".ci-disabled/c-variant-tests"
           mkdir -p "$DISABLED_DIR"
 
-          for d in             "$AVRO_TEST_ROOT/randoop/schemac1"             "$AVRO_TEST_ROOT/randoop/schemac2"             "$AVRO_TEST_ROOT/randoop/schemac3"             "$AVRO_TEST_ROOT/randoop/schemac4"             "$AVRO_TEST_ROOT/randoop/datafilewriterc1"             "$AVRO_TEST_ROOT/randoop/datafilewriterc2"             "$AVRO_TEST_ROOT/randoop/datafilewriterc3"             "$AVRO_TEST_ROOT/randoop/datafilewriterc4"
+          for d in \
+            "$AVRO_TEST_ROOT/randoop/schemac1" \
+            "$AVRO_TEST_ROOT/randoop/schemac2" \
+            "$AVRO_TEST_ROOT/randoop/schemac3" \
+            "$AVRO_TEST_ROOT/randoop/schemac4" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc1" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc2" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc3" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc4"
           do
             if [ -e "$d" ]; then
               mkdir -p "$DISABLED_DIR/$(dirname "$d")"
@@ -75,7 +83,12 @@ jobs:
             fi
           done
 
-          find "$AVRO_TEST_ROOT" -type f \(             -name '*C1*.java' -o             -name '*C2*.java' -o             -name '*C3*.java' -o             -name '*C4*.java'           \) -print0 | while IFS= read -r -d '' f; do
+          find "$AVRO_TEST_ROOT" -type f \( \
+            -name '*C1*.java' -o \
+            -name '*C2*.java' -o \
+            -name '*C3*.java' -o \
+            -name '*C4*.java' \
+          \) -print0 | while IFS= read -r -d '' f; do
             mkdir -p "$DISABLED_DIR/$(dirname "$f")"
             mv "$f" "$DISABLED_DIR/$f"
           done
@@ -85,11 +98,23 @@ jobs:
 
       - name: List Manual and LLM test sources
         run: |
-          find "$AVRO_TEST_ROOT"             -type f -name '*.java'             ! -path '*/randoop/*'             ! -name '*_ESTest.java'             ! -name '*_ESTest_scaffolding.java'             | sort
+          find "$AVRO_TEST_ROOT" \
+            -type f -name '*.java' \
+            ! -path '*/randoop/*' \
+            ! -name '*_ESTest.java' \
+            ! -name '*_ESTest_scaffolding.java' \
+            | sort
 
       - name: Run Manual and LLM Tests
         run: |
-          mvn -U -B -pl lang/java/avro             -Dspotless.check.skip=true             -Dcheckstyle.skip=true             -Drat.skip=true             -Dinvoker.skip=true             '-Dsurefire.includes=**/org/apache/avro/**/*.java'             '-Dsurefire.excludes=**/org/apache/avro/randoop/**,**/*Randoop*.java,**/*_ESTest.java,**/*_ESTest_scaffolding.java,**/*C1*.java,**/*C2*.java,**/*C3*.java,**/*C4*.java'             clean test jacoco:report
+          mvn -U -B -pl lang/java/avro \
+            -Dspotless.check.skip=true \
+            -Dcheckstyle.skip=true \
+            -Drat.skip=true \
+            -Dinvoker.skip=true \
+            '-Dsurefire.includes=**/org/apache/avro/**/*.java' \
+            '-Dsurefire.excludes=**/org/apache/avro/randoop/**,**/*Randoop*.java,**/*_ESTest.java,**/*_ESTest_scaffolding.java,**/*C1*.java,**/*C2*.java,**/*C3*.java,**/*C4*.java' \
+            clean test jacoco:report
 
       - name: Upload Manual and LLM Surefire reports
         if: always()
@@ -131,7 +156,15 @@ jobs:
           DISABLED_DIR=".ci-disabled/c-variant-tests"
           mkdir -p "$DISABLED_DIR"
 
-          for d in             "$AVRO_TEST_ROOT/randoop/schemac1"             "$AVRO_TEST_ROOT/randoop/schemac2"             "$AVRO_TEST_ROOT/randoop/schemac3"             "$AVRO_TEST_ROOT/randoop/schemac4"             "$AVRO_TEST_ROOT/randoop/datafilewriterc1"             "$AVRO_TEST_ROOT/randoop/datafilewriterc2"             "$AVRO_TEST_ROOT/randoop/datafilewriterc3"             "$AVRO_TEST_ROOT/randoop/datafilewriterc4"
+          for d in \
+            "$AVRO_TEST_ROOT/randoop/schemac1" \
+            "$AVRO_TEST_ROOT/randoop/schemac2" \
+            "$AVRO_TEST_ROOT/randoop/schemac3" \
+            "$AVRO_TEST_ROOT/randoop/schemac4" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc1" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc2" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc3" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc4"
           do
             if [ -e "$d" ]; then
               mkdir -p "$DISABLED_DIR/$(dirname "$d")"
@@ -139,7 +172,12 @@ jobs:
             fi
           done
 
-          find "$AVRO_TEST_ROOT" -type f \(             -name '*C1*.java' -o             -name '*C2*.java' -o             -name '*C3*.java' -o             -name '*C4*.java'           \) -print0 | while IFS= read -r -d '' f; do
+          find "$AVRO_TEST_ROOT" -type f \( \
+            -name '*C1*.java' -o \
+            -name '*C2*.java' -o \
+            -name '*C3*.java' -o \
+            -name '*C4*.java' \
+          \) -print0 | while IFS= read -r -d '' f; do
             mkdir -p "$DISABLED_DIR/$(dirname "$f")"
             mv "$f" "$DISABLED_DIR/$f"
           done
@@ -149,11 +187,31 @@ jobs:
 
       - name: List Evosuite test sources
         run: |
-          find "$AVRO_TEST_ROOT"             -type f \(               -name 'Schema_ESTest.java' -o               -name 'Schema_ESTest_scaffolding.java' -o               -name 'DataFileWriter_ESTest.java' -o               -name 'DataFileWriter_ESTest_scaffolding.java'             \)             | sort
+          find "$AVRO_TEST_ROOT" \
+            -type f \( \
+              -name 'Schema_ESTest.java' -o \
+              -name 'Schema_ESTest_scaffolding.java' -o \
+              -name 'DataFileWriter_ESTest.java' -o \
+              -name 'DataFileWriter_ESTest_scaffolding.java' \
+            \) \
+            | sort
 
       - name: Run Evosuite Tests
         run: |
-          mvn -U -B -pl lang/java/avro -Pevosuite-only             -Dspotless.check.skip=true             -Dcheckstyle.skip=true             -Drat.skip=true             -Dinvoker.skip=true             -Dtools_jar_location="$JAVA_HOME_8_X64/lib/tools.jar"             '-Dtest=Schema_ESTest,DataFileWriter_ESTest'             clean test jacoco:report
+          set -euo pipefail
+
+          EVO_TOOLS_JAR="$JAVA_HOME_8_X64/lib/tools.jar"
+          test -f "$EVO_TOOLS_JAR"
+
+          mvn -U -B -pl lang/java/avro -Pevosuite-only \
+            -Dspotless.check.skip=true \
+            -Dcheckstyle.skip=true \
+            -Drat.skip=true \
+            -Dinvoker.skip=true \
+            -Dtools_jar_location="$EVO_TOOLS_JAR" \
+            -DsurefireArgLine="-Dtools_jar_location=$EVO_TOOLS_JAR" \
+            '-Dtest=Schema_ESTest,DataFileWriter_ESTest' \
+            clean test jacoco:report
 
       - name: Upload Evosuite Surefire reports
         if: always()
@@ -188,7 +246,15 @@ jobs:
           DISABLED_DIR=".ci-disabled/c-variant-tests"
           mkdir -p "$DISABLED_DIR"
 
-          for d in             "$AVRO_TEST_ROOT/randoop/schemac1"             "$AVRO_TEST_ROOT/randoop/schemac2"             "$AVRO_TEST_ROOT/randoop/schemac3"             "$AVRO_TEST_ROOT/randoop/schemac4"             "$AVRO_TEST_ROOT/randoop/datafilewriterc1"             "$AVRO_TEST_ROOT/randoop/datafilewriterc2"             "$AVRO_TEST_ROOT/randoop/datafilewriterc3"             "$AVRO_TEST_ROOT/randoop/datafilewriterc4"
+          for d in \
+            "$AVRO_TEST_ROOT/randoop/schemac1" \
+            "$AVRO_TEST_ROOT/randoop/schemac2" \
+            "$AVRO_TEST_ROOT/randoop/schemac3" \
+            "$AVRO_TEST_ROOT/randoop/schemac4" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc1" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc2" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc3" \
+            "$AVRO_TEST_ROOT/randoop/datafilewriterc4"
           do
             if [ -e "$d" ]; then
               mkdir -p "$DISABLED_DIR/$(dirname "$d")"
@@ -196,7 +262,12 @@ jobs:
             fi
           done
 
-          find "$AVRO_TEST_ROOT" -type f \(             -name '*C1*.java' -o             -name '*C2*.java' -o             -name '*C3*.java' -o             -name '*C4*.java'           \) -print0 | while IFS= read -r -d '' f; do
+          find "$AVRO_TEST_ROOT" -type f \( \
+            -name '*C1*.java' -o \
+            -name '*C2*.java' -o \
+            -name '*C3*.java' -o \
+            -name '*C4*.java' \
+          \) -print0 | while IFS= read -r -d '' f; do
             mkdir -p "$DISABLED_DIR/$(dirname "$f")"
             mv "$f" "$DISABLED_DIR/$f"
           done
@@ -206,11 +277,20 @@ jobs:
 
       - name: List Randoop test sources
         run: |
-          find "$AVRO_TEST_ROOT/randoop/schema" "$AVRO_TEST_ROOT/randoop/datafilewriter"             -type f -name '*.java'             | sort
+          find "$AVRO_TEST_ROOT/randoop/schema" "$AVRO_TEST_ROOT/randoop/datafilewriter" \
+            -type f -name '*.java' \
+            | sort
 
       - name: Run Randoop Tests
         run: |
-          mvn -U -B -pl lang/java/avro -Prandoop-only             -Dspotless.check.skip=true             -Dcheckstyle.skip=true             -Drat.skip=true             -Dinvoker.skip=true             '-Dsurefire.includes=**/org/apache/avro/randoop/schema/**/*.java,**/org/apache/avro/randoop/datafilewriter/**/*.java'             '-Dsurefire.excludes=**/*ErrorTest*.java,**/*_ESTest.java,**/*_ESTest_scaffolding.java,**/*C1*.java,**/*C2*.java,**/*C3*.java,**/*C4*.java,**/schemac1/**,**/schemac2/**,**/schemac3/**,**/schemac4/**,**/datafilewriterc1/**,**/datafilewriterc2/**,**/datafilewriterc3/**,**/datafilewriterc4/**'             clean test jacoco:report
+          mvn -U -B -pl lang/java/avro -Prandoop-only \
+            -Dspotless.check.skip=true \
+            -Dcheckstyle.skip=true \
+            -Drat.skip=true \
+            -Dinvoker.skip=true \
+            '-Dsurefire.includes=**/org/apache/avro/randoop/schema/**/*.java,**/org/apache/avro/randoop/datafilewriter/**/*.java' \
+            '-Dsurefire.excludes=**/*ErrorTest*.java,**/*_ESTest.java,**/*_ESTest_scaffolding.java,**/*C1*.java,**/*C2*.java,**/*C3*.java,**/*C4*.java,**/schemac1/**,**/schemac2/**,**/schemac3/**,**/schemac4/**,**/datafilewriterc1/**,**/datafilewriterc2/**,**/datafilewriterc3/**,**/datafilewriterc4/**' \
+            clean test jacoco:report
 
       - name: Upload Randoop Surefire reports
         if: always()
