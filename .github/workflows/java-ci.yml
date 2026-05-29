@@ -46,8 +46,12 @@ env:
 
 jobs:
   manual-and-llm-tests:
-    name: Manual and LLM Tests
-    runs-on: ubuntu-latest
+    name: Manual and LLM Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout repository
@@ -128,8 +132,12 @@ jobs:
           if-no-files-found: ignore
 
   evosuite-tests:
-    name: Evosuite Tests
-    runs-on: ubuntu-latest
+    name: Evosuite Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout repository
@@ -271,15 +279,41 @@ jobs:
             \) \
             | sort
 
-      - name: Run Schema EvoSuite Tests
+      - name: Resolve JDK 17 test JVM paths
         run: |
           set -euo pipefail
+
+          RAW_JAVA_HOME_17="${JAVA_HOME_17_X64:-${JAVA_HOME_17_ARM64:-}}"
+
+          if [ -z "$RAW_JAVA_HOME_17" ]; then
+            echo "Could not find JAVA_HOME_17_X64 or JAVA_HOME_17_ARM64"
+            env | sort | grep '^JAVA_HOME' || true
+            exit 1
+          fi
+
+          if command -v cygpath >/dev/null 2>&1; then
+            TEST_JAVA_CMD="$(cygpath -u "$RAW_JAVA_HOME_17")/bin/java"
+            TEST_JAVA_MAVEN="$(cygpath -w "$RAW_JAVA_HOME_17")\\bin\\java.exe"
+            JACOCO_DEST="$(cygpath -w "$PWD/$AVRO_MODULE/target/jacoco.exec")"
+          else
+            TEST_JAVA_CMD="$RAW_JAVA_HOME_17/bin/java"
+            TEST_JAVA_MAVEN="$RAW_JAVA_HOME_17/bin/java"
+            JACOCO_DEST="$PWD/$AVRO_MODULE/target/jacoco.exec"
+          fi
+
+          echo "TEST_JAVA_CMD=$TEST_JAVA_CMD" >> "$GITHUB_ENV"
+          echo "TEST_JAVA_MAVEN=$TEST_JAVA_MAVEN" >> "$GITHUB_ENV"
+          echo "JACOCO_DEST=$JACOCO_DEST" >> "$GITHUB_ENV"
 
           echo "Maven JVM:"
           java -version
 
-          echo "Surefire test JVM:"
-          "$JAVA_HOME_17_X64/bin/java" -version
+          echo "Surefire/EvoSuite JVM:"
+          "$TEST_JAVA_CMD" -version
+
+      - name: Run Schema EvoSuite Tests
+        run: |
+          set -euo pipefail
 
           rm -f "$AVRO_MODULE/target/jacoco.exec"
 
@@ -291,8 +325,8 @@ jobs:
             -Drat.skip=true \
             -Dinvoker.skip=true \
             -Dmaven.compiler.testRelease=17 \
-            -Djacoco-agent.destfile="$PWD/$AVRO_MODULE/target/jacoco.exec" \
-            -Djvm="$JAVA_HOME_17_X64/bin/java" \
+            -Djacoco-agent.destfile="$JACOCO_DEST" \
+            -Djvm="$TEST_JAVA_MAVEN" \
             -DsurefireArgLine="-noverify" \
             -Dtest="org.apache.avro.Schema_ESTest" \
             clean test-compile jacoco:instrument surefire:test jacoco:restore-instrumented-classes jacoco:report
@@ -307,12 +341,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Maven JVM:"
-          java -version
-
-          echo "Surefire test JVM:"
-          "$JAVA_HOME_17_X64/bin/java" -version
-
           rm -f "$AVRO_MODULE/target/jacoco.exec"
 
           mvn -U -B -pl "$AVRO_MODULE" \
@@ -323,8 +351,8 @@ jobs:
             -Drat.skip=true \
             -Dinvoker.skip=true \
             -Dmaven.compiler.testRelease=17 \
-            -Djacoco-agent.destfile="$PWD/$AVRO_MODULE/target/jacoco.exec" \
-            -Djvm="$JAVA_HOME_17_X64/bin/java" \
+            -Djacoco-agent.destfile="$JACOCO_DEST" \
+            -Djvm="$TEST_JAVA_MAVEN" \
             -DsurefireArgLine="-noverify" \
             -Dtest="org.apache.avro.file.DataFileWriter_ESTest" \
             clean test-compile jacoco:instrument surefire:test jacoco:restore-instrumented-classes jacoco:report
@@ -351,8 +379,12 @@ jobs:
           if-no-files-found: ignore
 
   randoop-tests:
-    name: Randoop Tests
-    runs-on: ubuntu-latest
+    name: Randoop Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout repository
