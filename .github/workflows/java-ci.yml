@@ -268,7 +268,7 @@ jobs:
             fi
           done
 
-      - name: Disable Windows-specific EvoSuite Schema file tests
+      - name: Disable Windows-specific EvoSuite file tests
         if: runner.os == 'Windows'
         run: |
           set -euo pipefail
@@ -276,26 +276,37 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          path = Path("lang/java/avro/src/test/java/org/apache/avro/Schema_ESTest.java")
-          text = path.read_text(encoding="utf-8")
+          targets = {
+              Path("lang/java/avro/src/test/java/org/apache/avro/Schema_ESTest.java"): (
+                  "test094",
+                  "test150",
+              ),
+              Path("lang/java/avro/src/test/java/org/apache/avro/file/DataFileWriter_ESTest.java"): (
+                  "test34",
+              ),
+          }
 
-          for method in ("test094", "test150"):
-              marker = f"public void {method}("
-              idx = text.find(marker)
-              if idx == -1:
-                  raise SystemExit(f"Cannot find {method} in {path}")
+          for path, methods in targets.items():
+              text = path.read_text(encoding="utf-8")
 
-              previous = text[max(0, idx - 400):idx]
-              if "@org.junit.Ignore" not in previous:
-                  text = text[:idx] + (
-                      '@org.junit.Ignore("Windows-specific generated EvoSuite file-path test")\n'
-                      '  '
-                  ) + text[idx:]
+              for method in methods:
+                  marker = f"public void {method}("
+                  idx = text.find(marker)
+                  if idx == -1:
+                      raise SystemExit(f"Cannot find {method} in {path}")
 
-          path.write_text(text, encoding="utf-8")
+                  previous = text[max(0, idx - 400):idx]
+                  if "@org.junit.Ignore" not in previous:
+                      text = text[:idx] + (
+                          '@org.junit.Ignore("Windows-specific generated EvoSuite file-path test")\n'
+                          '  '
+                      ) + text[idx:]
+
+              path.write_text(text, encoding="utf-8")
           PY
 
           grep -n -A3 -B3 "test094\|test150" "$AVRO_TEST_ROOT/Schema_ESTest.java"
+          grep -n -A3 -B3 "test34" "$AVRO_TEST_ROOT/file/DataFileWriter_ESTest.java"
 
       - name: List EvoSuite test sources
         run: |
