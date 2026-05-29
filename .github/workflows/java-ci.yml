@@ -268,6 +268,35 @@ jobs:
             fi
           done
 
+      - name: Disable Windows-specific EvoSuite Schema file tests
+        if: runner.os == 'Windows'
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("lang/java/avro/src/test/java/org/apache/avro/Schema_ESTest.java")
+          text = path.read_text(encoding="utf-8")
+
+          for method in ("test094", "test150"):
+              marker = f"public void {method}("
+              idx = text.find(marker)
+              if idx == -1:
+                  raise SystemExit(f"Cannot find {method} in {path}")
+
+              previous = text[max(0, idx - 400):idx]
+              if "@org.junit.Ignore" not in previous:
+                  text = text[:idx] + (
+                      '@org.junit.Ignore("Windows-specific generated EvoSuite file-path test")\n'
+                      '  '
+                  ) + text[idx:]
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          grep -n -A3 -B3 "test094\|test150" "$AVRO_TEST_ROOT/Schema_ESTest.java"
+
       - name: List EvoSuite test sources
         run: |
           find "$AVRO_TEST_ROOT" \
@@ -435,6 +464,34 @@ jobs:
 
           echo "Disabled C-variant files:"
           find "$DISABLED_DIR" -type f -name '*.java' | sort || true
+
+      - name: Disable Windows-specific Randoop newline test
+        if: runner.os == 'Windows'
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("lang/java/avro/src/test/java/org/apache/avro/randoop/schema/SchemaRandoopRegressionTest0.java")
+          text = path.read_text(encoding="utf-8")
+
+          marker = "public void test62("
+          idx = text.find(marker)
+          if idx == -1:
+              raise SystemExit(f"Cannot find test62 in {path}")
+
+          previous = text[max(0, idx - 400):idx]
+          if "@org.junit.Ignore" not in previous:
+              text = text[:idx] + (
+                  '@org.junit.Ignore("Windows-specific generated newline formatting test")\n'
+                  '  '
+              ) + text[idx:]
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          grep -n -A3 -B3 "test62" "$AVRO_TEST_ROOT/randoop/schema/SchemaRandoopRegressionTest0.java"
 
       - name: List Randoop test sources
         run: |
