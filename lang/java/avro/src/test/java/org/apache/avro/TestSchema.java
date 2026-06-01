@@ -15,7 +15,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class TestSchema {
-
+//
   private enum SchemaTypeCase {
     PRIM_NULL,
     PRIM_BOOLEAN,
